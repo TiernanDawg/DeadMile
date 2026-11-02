@@ -353,6 +353,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     func didBegin(_ contact:SKPhysicsContact) {
         let a=contact.bodyA.node, b=contact.bodyB.node
         if let zombie=(a?.name=="zombie" ? a : b?.name=="zombie" ? b : nil) {
+            let bullet = a?.name == "bullet" ? a : (b?.name == "bullet" ? b : nil)
             let impact=abs(contact.collisionImpulse)
             kills += 1
             FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
@@ -361,7 +362,12 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
             zombie.removeFromParent()
             zombies.removeAll { $0 === zombie }
-            if impact < 18 { health=max(0,health-Tune.zombieContactDamage) }
+            if let bullet {
+                bullet.removeFromParent()
+                projectiles.removeAll { $0 === bullet }
+            } else if impact < 18 {
+                health=max(0,health-Tune.zombieContactDamage)
+            }
         }
         if let hazard = (a?.name == "hazard" ? a : b?.name == "hazard" ? b : nil) {
             hazard.name = "hazard-spent"
@@ -399,14 +405,14 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         input = Input()
         cameraNode.position = .zero
         removeAllChildren()
-        zombies.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
         maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         boost = 0; distance = 0
-        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; hiddenKits = 0; lastKit = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
+        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; hiddenKits = 0; lastKit = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; lastShotTime = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
