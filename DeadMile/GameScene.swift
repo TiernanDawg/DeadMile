@@ -17,6 +17,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     var upgradeTiers: [String:Int] = [:]
     private var chassis: SKSpriteNode?
     private var wheels: [SKSpriteNode] = []
+    private var wheelJoints: [SKPhysicsJoint] = []
+    private var damageOverlay: SKShapeNode?
+    private var detachedWheel = false
     private var cameraNode = SKCameraNode()
     private var fuel: CGFloat = Tune.baseFuel
     private var maxFuel: CGFloat = Tune.baseFuel
@@ -160,6 +163,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 let joint=SKPhysicsJointPin.joint(withBodyA:a,bodyB:b,anchor:wheel.position)
                 joint.frictionTorque=8
                 physicsWorld.add(joint)
+                wheelJoints.append(joint)
             }
         }
     }
@@ -256,6 +260,13 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             node.position.x = cameraNode.position.x * (1 - parallax) + wraps * tileWidth
         }
         if speed < Tune.lowSpeedEndThreshold && fuel <= 0 { lowSpeedTime += dt } else { lowSpeedTime=0 }
+        damageOverlay?.alpha = max(0,min(0.9,1 - health / max(1,maxHealth)))
+        if !detachedWheel && health <= maxHealth * 0.28, let joint = wheelJoints.popLast() {
+            physicsWorld.remove(joint)
+            detachedWheel = true
+            wheels.last?.name = "detached-wheel"
+            emitDust(at:car.position,color:.orange)
+        }
         if health <= 0 || (fuel <= 0 && lowSpeedTime > Tune.lowSpeedEndDelay) { finish(destroyed:health<=0) }
         if currentTime-lastHUD > 0.12 {
             lastHUD=currentTime
@@ -420,8 +431,10 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         input = Input()
         cameraNode.position = .zero
         removeAllChildren()
-        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); wheelJoints.removeAll(); terrainBodies.removeAll()
         chassis = nil
+        damageOverlay = nil
+        detachedWheel = false
         maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
