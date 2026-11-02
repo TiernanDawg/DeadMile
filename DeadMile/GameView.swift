@@ -111,13 +111,4 @@ private struct NeonButton:ButtonStyle {
             .background(color.opacity(configuration.isPressed ? 0.5 : 0.85),in:Capsule()).foregroundStyle(.black)
     }
 }
-
-private extension DeadMileScene {
-    func resetRun() {
-        isPaused=false
-        removeAllChildren()
-        zombies=[]; pickups=[]; wheels=[]; terrainBodies=[]; chassis=nil
-        fuel=Tune.baseFuel; health=Tune.baseHealth; boost=0; distance=0; kills=0; cash=0; elapsed=0; lowSpeedTime=0; lastSpawn=0; ended=false
-        didMove(to:view ?? SKView())
-    }
-}
+\n
