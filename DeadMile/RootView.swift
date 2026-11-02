@@ -63,8 +63,7 @@ struct RootView: View {
 
     private var home:some View {
         VStack(spacing:18) {
-            Text("THE ROAD
-DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineTextAlignment(.center).tracking(-1)
+            Text("THE ROAD\nDOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineTextAlignment(.center).tracking(-1)
             Text("10 REGIONS  •  30 RUNS  •  NO SAFE STOPS").font(.system(size:11,weight:.heavy,design:.rounded)).tracking(2).foregroundStyle(.orange)
             HStack(spacing:14) { metric("BEST DISTANCE","\(progress.bestDistance)m");metric("INFECTED","\(progress.totalKills)") }
             Button { selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
@@ -181,7 +180,7 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
                 }.frame(maxHeight:300)
             } else {
                 Image(systemName:"lock.fill").font(.largeTitle).foregroundStyle(.orange)
-                Text("Clear the evacuation port to unlock contracts and exploration.").multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.65))
+                Text("Clear area 3 of the first region to unlock contracts. Reach the evacuation port to unlock exploration.").multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.65))
             }
         }
     }
