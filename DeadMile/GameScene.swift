@@ -114,7 +114,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
-        let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color),size:CGSize(width:width,height:65))
+        let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id),size:CGSize(width:width,height:65))
         car.position=CGPoint(x:150,y:155); car.zPosition=10
         car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
         car.physicsBody?.mass=CGFloat(vehicle.mass*4.2)
@@ -198,7 +198,9 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         for zombie in zombies {
             let delta = car.position.x - zombie.position.x
             let direction: CGFloat = delta < 0 ? -1 : 1
-            let chaseSpeed = CGFloat(24 + min(level, 9) * 3)
+            let variant = zombie.userData?["variant"] as? Int ?? 0
+            let speeds:[CGFloat] = [24,52,17,22,20]
+            let chaseSpeed = speeds[min(max(variant,0),4)] + CGFloat(min(level, 9) * 3)
             var separation: CGFloat = 0
             for other in zombies where other !== zombie {
                 let gap = zombie.position.x - other.position.x
@@ -228,9 +230,11 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func spawnZombie(at point:CGPoint) {
-        let variant=Int.random(in:0..<3)
+        let variant=Int.random(in:0..<5)
         let scale=Biome.all[min(max(level,0),9)].zombieScale
-        let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:44*scale,height:65*scale))
+        let baseWidth:CGFloat = variant == 2 ? 54 : (variant == 1 ? 39 : 44)
+        let baseHeight:CGFloat = variant == 2 ? 72 : (variant == 1 ? 62 : 65)
+        let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:baseWidth*scale,height:baseHeight*scale))
         zombie.position=point; zombie.zPosition=8; zombie.name="zombie"
         zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:28*scale,height:48*scale))
         zombie.physicsBody?.mass=(variant == 2 ? 2.8 : 0.9) * scale
