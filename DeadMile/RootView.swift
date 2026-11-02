@@ -44,6 +44,10 @@ struct RootView: View {
             }
             if showDebug { debugPanel }
         }
+        .onChange(of: progress.audioEnabled) { _, _ in progress.save() }
+        .onChange(of: progress.hapticsEnabled) { _, _ in progress.save() }
+        .onChange(of: progress.largeHUD) { _, _ in progress.save() }
+        .onChange(of: progress.controlScale) { _, _ in progress.save() }
         .alert("Reset all progress?",isPresented:$showReset) {
             Button("Cancel",role:.cancel){}
             Button("Reset",role:.destructive){ progress.cash=450;progress.bestDistance=0;progress.unlockedLevel=0;progress.unlockedVehicles=[0];progress.selectedVehicle=0;progress.upgrades=[:];progress.areaProgress=[:];progress.totalKills=0;progress.runs=0;progress.save() }
