@@ -1,10 +1,13 @@
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @Bindable var progress: PlayerProgress
     @State private var screen = "home"
     @State private var selectedLevel = 0
     @State private var selectedArea = 0
+    @State private var garageVehicle = 0
+    @State private var showShare = false
     @State private var showDebug = false
     @State private var showReset = false
 
@@ -48,9 +51,13 @@ struct RootView: View {
         .onChange(of: progress.hapticsEnabled) { _, _ in progress.save() }
         .onChange(of: progress.largeHUD) { _, _ in progress.save() }
         .onChange(of: progress.controlScale) { _, _ in progress.save() }
+        .onChange(of: progress.selectedVehicle) { _, _ in progress.save() }
+        .sheet(isPresented: $showShare) {
+            if let shareURL { ActivityView(items: [shareURL]) }
+        }
         .alert("Reset all progress?",isPresented:$showReset) {
             Button("Cancel",role:.cancel){}
-            Button("Reset",role:.destructive){ progress.cash=450;progress.bestDistance=0;progress.unlockedLevel=0;progress.unlockedVehicles=[0];progress.selectedVehicle=0;progress.upgrades=[:];progress.areaProgress=[:];progress.totalKills=0;progress.runs=0;progress.save() }
+            Button("Reset",role:.destructive){ progress.reset(); selectedLevel=0; selectedArea=0; garageVehicle=0 }
         } message:{Text("This permanently clears local game progress.")}
     }
 
@@ -108,7 +115,7 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
     private var garage:some View {
         VStack(spacing:12) {
             Text("MOTOR POOL").font(.system(size:30,weight:.black,design:.rounded))
-            TabView(selection:$progress.selectedVehicle) {
+            TabView(selection:$garageVehicle) {
                 ForEach(VehicleSpec.roster) { spec in
                     VStack(spacing:8) {
                         if let cgImage = ArtFactory.vehicle(colorHex:spec.color).cgImage() {
@@ -119,13 +126,17 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
                         Text(spec.name).font(.system(size:21,weight:.black,design:.rounded))
                         HStack { statBar("POWER",spec.power/3.1);statBar("ARMOR",spec.armor/4.5);statBar("FUEL",spec.fuel/230) }
                         if progress.unlockedVehicles.contains(spec.id) {
-                            Text("OWNED").font(.system(size:10,weight:.black)).foregroundStyle(.green)
+                            Button(progress.selectedVehicle == spec.id ? "SELECTED" : "SELECT VEHICLE") {
+                                progress.selectedVehicle = spec.id
+                                progress.save()
+                            }.buttonStyle(PrimaryStyle()).disabled(progress.selectedVehicle == spec.id)
                         } else {
                             Button("UNLOCK  $\(spec.price)") { _=progress.buyVehicle(spec.id) }.buttonStyle(PrimaryStyle()).disabled(progress.cash<spec.price)
                         }
                     }.tag(spec.id)
                 }
             }.tabViewStyle(.page(indexDisplayMode:.always)).frame(height:235)
+                .onAppear { garageVehicle = progress.selectedVehicle }
             HStack(spacing:8) {
                 upgradeButton("ENGINE","engine", "Power and acceleration")
                 upgradeButton("FUEL","fuel", "Longer runs")
@@ -139,10 +150,35 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
         VStack(spacing:14) {
             Text("SURVIVAL CONTRACTS").font(.system(size:28,weight:.black,design:.rounded))
             if progress.missionsUnlocked {
-                ForEach(0..<50,id:\.self) { i in
-                    HStack { Text(String(format:"CONTRACT %02d",i+1)).font(.system(size:12,weight:.black));Spacer();Text(["Crush 8 infected","Travel 1,200m","Collect 2 fuel cans","Finish with 25% hull"][i%4]).font(.system(size:11)).foregroundStyle(.white.opacity(0.65));Image(systemName:"star") }
-                        .padding(10).background(.white.opacity(0.06),in:RoundedRectangle(cornerRadius:8))
-                }.frame(maxHeight:250)
+                Text("50 contracts · rewards are credited automatically").font(.system(size:11,weight:.medium)).foregroundStyle(.white.opacity(0.55))
+                ScrollView {
+                    LazyVStack(spacing:8) {
+                        ForEach(MissionSpec.all) { mission in
+                            let current = progress.missionProgress(mission)
+                            let completed = progress.claimedMissions.contains(mission.id)
+                            HStack(spacing:12) {
+                                Image(systemName: completed ? "checkmark.seal.fill" : "target")
+                                    .font(.system(size:20,weight:.bold))
+                                    .foregroundStyle(completed ? .green : .orange)
+                                    .frame(width:28)
+                                VStack(alignment:.leading,spacing:5) {
+                                    Text(mission.title).font(.system(size:11,weight:.black))
+                                    Text(mission.detail).font(.system(size:10)).foregroundStyle(.white.opacity(0.65))
+                                    ProgressView(value:Double(min(current,mission.target)),total:Double(max(1,mission.target)))
+                                        .tint(completed ? .green : .orange)
+                                    Text("\(min(current,mission.target)) / \(mission.target)")
+                                        .font(.system(size:9,weight:.bold,design:.monospaced)).foregroundStyle(.white.opacity(0.55))
+                                }
+                                Spacer(minLength:4)
+                                VStack(spacing:3) {
+                                    Text(completed ? "PAID" : "+$\(mission.reward)")
+                                        .font(.system(size:10,weight:.black)).foregroundStyle(completed ? .green : .yellow)
+                                    if completed { Image(systemName:"star.fill").font(.system(size:10)).foregroundStyle(.yellow) }
+                                }
+                            }.padding(10).background(.white.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
+                        }
+                    }
+                }.frame(maxHeight:300)
             } else {
                 Image(systemName:"lock.fill").font(.largeTitle).foregroundStyle(.orange)
                 Text("Clear the evacuation port to unlock contracts and exploration.").multilineTextAlignment(.center).foregroundStyle(.white.opacity(0.65))
@@ -158,7 +194,10 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
             Toggle("Large HUD",isOn:$progress.largeHUD).tint(.orange)
             VStack(alignment:.leading) { Text("Control size");Slider(value:$progress.controlScale,in:0.8...1.3) }
             Button("RESET PROGRESS",role:.destructive){showReset=true}
-            Button("EXPORT SAVE") { exportSave() }.buttonStyle(SecondaryStyle())
+            Button("PREPARE SAVE EXPORT") { exportSave() }.buttonStyle(SecondaryStyle())
+            if shareURL != nil {
+                Button("SHARE SAVE FILE") { showShare = true }.buttonStyle(SecondaryStyle())
+            }
         }.padding(.horizontal,40).frame(maxWidth:520)
     }
 
@@ -218,8 +257,12 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
         let url=FileManager.default.temporaryDirectory.appendingPathComponent("deadmile-save-v1.json")
         progress.save()
         if let data=try? Data(contentsOf:FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("deadmile-save-v1.json")) {
-            try? data.write(to:url)
-            shareURL=url
+            do {
+                try data.write(to:url, options:.atomic)
+                shareURL=url
+            } catch {
+                print("Save export failed: \(error.localizedDescription)")
+            }
         }
     }
     @State private var shareURL:URL?
@@ -235,4 +278,15 @@ private struct SecondaryStyle:ButtonStyle {
     func makeBody(configuration:Configuration)->some View {
         configuration.label.font(.system(size:12,weight:.black)).padding(12).background(.white.opacity(0.1),in:Capsule())
     }
+}
+
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
