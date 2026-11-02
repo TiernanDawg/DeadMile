@@ -248,7 +248,9 @@ struct RootView: View {
             instruction("BRAKE / REVERSE","Use the left pedal to slow down or reverse.")
             instruction("TILT","Use the two center controls to rotate in mid-air.")
             instruction("BOOST","Boost charges are collected on the road. Spend them for a burst.")
+            instruction("WEAPON","Buy a mounted weapon upgrade, then hold FIRE to clear infected ahead.")
             instruction("FUEL","Fuel cans refill your tank. When empty, keep rolling to stretch your run.")
+            instruction("EXPLORATION","After clearing the final region, free roam for hidden survival caches.")
         }.padding(.horizontal,40).frame(maxWidth:600)
     }
 
@@ -259,6 +261,8 @@ struct RootView: View {
             metric("ROAD WARRIOR","\(progress.bestDistance) / 5,000 m")
             metric("MILE EATER","\(progress.runs) runs completed")
             metric("FLEET COMMANDER","\(progress.unlockedVehicles.count) / 10 vehicles")
+            metric("CACHE RUNNER","\(progress.totalHiddenKits) survival kits")
+            metric("ROUTE CLEARER","\(progress.areasCleared) / 30 areas")
         }
     }
 
