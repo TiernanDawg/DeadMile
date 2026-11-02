@@ -198,6 +198,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let dt=min(max(currentTime-(elapsed == 0 ? currentTime : elapsed),0),1.0/20.0)
         elapsed=currentTime
         let speed=abs(body.velocity.dx)
+        FeedbackService.shared.updateEngine(speed:speed,audio:audioEnabled,biome:level)
         let engine=CGFloat(vehicle.power)*(1+CGFloat(upgradeTiers["engine",default:0])*0.18)
         if input.gas && fuel>0 {
             body.applyForce(CGVector(dx:Tune.engineForce*engine,dy:0))
@@ -461,6 +462,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private func finish(destroyed:Bool) {
         guard !ended else { return }
         ended=true
+        FeedbackService.shared.stopEngine()
         let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/1000)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups,hiddenKits:hiddenKits)
         onFinish?(result)
         isPaused=true
