@@ -19,6 +19,8 @@ jobs:
           xcodebuild -runFirstLaunch
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Generate original app icon
+        run: swift Scripts/GenerateAppIcon.swift
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
       - name: Build unsigned device app
