@@ -101,6 +101,7 @@ final class PlayerProgress {
     var lifetimeCashEarned = 0
     var areasCleared = 0
     var claimedMissions: Set<Int> = []
+    var missionStars: [Int: Int] = [:]
 
     func tier(_ category: String, vehicle: Int? = nil) -> Int {
         upgrades["\(vehicle ?? selectedVehicle)-\(category)", default: 0]
@@ -179,8 +180,11 @@ final class PlayerProgress {
             }
         }
         if missionsUnlocked {
-            for mission in MissionSpec.all where !claimedMissions.contains(mission.id) {
-                if missionProgress(mission) >= mission.target {
+            for mission in MissionSpec.all {
+                let value = missionProgress(mission)
+                let stars = min(3, value / max(1, mission.target))
+                if stars > missionStars[mission.id, default: 0] { missionStars[mission.id] = stars }
+                if !claimedMissions.contains(mission.id) && value >= mission.target {
                     claimedMissions.insert(mission.id)
                     cash += mission.reward
                 }
@@ -224,6 +228,7 @@ final class PlayerProgress {
         lifetimeCashEarned = 0
         areasCleared = 0
         claimedMissions = []
+        missionStars = [:]
         save()
     }
 
@@ -291,6 +296,7 @@ private struct SavePayload: Codable {
     var lifetimeCashEarned: Int?
     var areasCleared: Int?
     var claimedMissions: [Int]?
+    var missionStars: [Int: Int]?
 
     init(progress p: PlayerProgress) {
         cash = p.cash
@@ -316,6 +322,7 @@ private struct SavePayload: Codable {
         lifetimeCashEarned = p.lifetimeCashEarned
         areasCleared = p.areasCleared
         claimedMissions = Array(p.claimedMissions)
+        missionStars = p.missionStars
     }
 
     func apply(to p: PlayerProgress) {
@@ -343,5 +350,6 @@ private struct SavePayload: Codable {
         p.lifetimeCashEarned = lifetimeCashEarned ?? 0
         p.areasCleared = areasCleared ?? 0
         p.claimedMissions = Set(claimedMissions ?? [])
+        p.missionStars = missionStars ?? [:]
     }
 }
