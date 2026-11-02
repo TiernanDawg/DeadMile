@@ -72,7 +72,7 @@ struct GameView: View {
             scene.onHUD={ d,s,f,h,b,c in distance=d;speed=s;fuel=f;health=h;boost=b;cash=c }
             scene.onFinish={ r in
                 result=r
-                progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area))
+                progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area,fuelPickups:r.fuelPickups,cashPickups:r.cashPickups,boostPickups:r.boostPickups))
             }
         }
         .onChange(of: scenePhase) { _, phase in
