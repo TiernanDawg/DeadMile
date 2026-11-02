@@ -85,7 +85,7 @@ struct GameView: View {
                 scene.isPaused = true
             }
         }
-        .onDisappear { progress.save() }
+        .onDisappear { FeedbackService.shared.stopEngine(); progress.save() }
     }
 
     private func stat(_ title:String,_ value:String,_ color:Color)->some View {
