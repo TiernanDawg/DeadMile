@@ -38,6 +38,35 @@ struct RunRecord: Codable {
     var isExploration: Bool = false
 }
 
+struct DailyChallengeSpec {
+    enum Metric { case distance, kills, fuelPickups, cashPickups }
+    let date: String
+    let title: String
+    let detail: String
+    let metric: Metric
+    let target: Int
+    let reward: Int
+
+    static func current() -> DailyChallengeSpec {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        let now = Date()
+        let date = formatter.string(from: now)
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: now) ?? 1
+        let options: [(String, String, Metric, Int)] = [
+            ("LONG HAUL", "Drive 2,500 meters", .distance, 2500),
+            ("CLEAR THE ROAD", "Eliminate 15 infected", .kills, 15),
+            ("FUEL SCAVENGER", "Collect 3 fuel cans", .fuelPickups, 3),
+            ("CASH RUN", "Collect 5 cash drops", .cashPickups, 5)
+        ]
+        let option = options[(day - 1) % options.count]
+        return DailyChallengeSpec(date: date, title: option.0, detail: option.1, metric: option.2, target: option.3, reward: 450)
+    }
+}
+
 struct MissionSpec: Identifiable {
     enum Metric {
         case kills, distance, fuelPickups, cashPickups, boostPickups, hiddenKits, runs, cashEarned, areasCleared
@@ -102,6 +131,9 @@ final class PlayerProgress {
     var areasCleared = 0
     var claimedMissions: Set<Int> = []
     var missionStars: [Int: Int] = [:]
+    var dailyChallengeDate = ""
+    var dailyChallengeProgress = 0
+    var dailyChallengeClaimed = false
 
     func tier(_ category: String, vehicle: Int? = nil) -> Int {
         upgrades["\(vehicle ?? selectedVehicle)-\(category)", default: 0]
@@ -157,6 +189,24 @@ final class PlayerProgress {
         lifetimeCashEarned += record.earned
         bestDistance = max(bestDistance, record.distance)
         cash += record.earned
+        let challenge = DailyChallengeSpec.current()
+        if dailyChallengeDate != challenge.date {
+            dailyChallengeDate = challenge.date
+            dailyChallengeProgress = 0
+            dailyChallengeClaimed = false
+        }
+        let challengeGain: Int
+        switch challenge.metric {
+        case .distance: challengeGain = record.distance
+        case .kills: challengeGain = record.kills
+        case .fuelPickups: challengeGain = record.fuelPickups
+        case .cashPickups: challengeGain = record.cashPickups
+        }
+        dailyChallengeProgress += max(0, challengeGain)
+        if !dailyChallengeClaimed && dailyChallengeProgress >= challenge.target {
+            dailyChallengeClaimed = true
+            cash += challenge.reward
+        }
 
         if !record.isExploration {
             let key = "\(record.level)-\(record.area)"
@@ -229,6 +279,9 @@ final class PlayerProgress {
         areasCleared = 0
         claimedMissions = []
         missionStars = [:]
+        dailyChallengeDate = ""
+        dailyChallengeProgress = 0
+        dailyChallengeClaimed = false
         save()
     }
 
@@ -297,6 +350,9 @@ private struct SavePayload: Codable {
     var areasCleared: Int?
     var claimedMissions: [Int]?
     var missionStars: [Int: Int]?
+    var dailyChallengeDate: String?
+    var dailyChallengeProgress: Int?
+    var dailyChallengeClaimed: Bool?
 
     init(progress p: PlayerProgress) {
         cash = p.cash
@@ -323,6 +379,9 @@ private struct SavePayload: Codable {
         areasCleared = p.areasCleared
         claimedMissions = Array(p.claimedMissions)
         missionStars = p.missionStars
+        dailyChallengeDate = p.dailyChallengeDate
+        dailyChallengeProgress = p.dailyChallengeProgress
+        dailyChallengeClaimed = p.dailyChallengeClaimed
     }
 
     func apply(to p: PlayerProgress) {
@@ -351,5 +410,8 @@ private struct SavePayload: Codable {
         p.areasCleared = areasCleared ?? 0
         p.claimedMissions = Set(claimedMissions ?? [])
         p.missionStars = missionStars ?? [:]
+        p.dailyChallengeDate = dailyChallengeDate ?? ""
+        p.dailyChallengeProgress = dailyChallengeProgress ?? 0
+        p.dailyChallengeClaimed = dailyChallengeClaimed ?? false
     }
 }
