@@ -10,7 +10,6 @@
   <key>CFBundleShortVersionString</key><string>1.0.0</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSRequiresIPhoneOS</key><true/>
-  <key>UIRequiresFullScreen</key><true/>
   <key>UIStatusBarHidden</key><true/>
   <key>UIUserInterfaceStyle</key><string>Dark</string>
   <key>UILaunchScreen</key><dict/>
