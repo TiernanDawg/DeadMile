@@ -251,7 +251,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             let direction: CGFloat = delta < 0 ? -1 : 1
             let variant = zombie.userData?["variant"] as? Int ?? 0
             let speeds:[CGFloat] = [24,52,17,22,20,65,13,26,19,40]
-            let chaseSpeed = speeds[min(max(variant,0),4)] + CGFloat(min(level, 9) * 3)
+            let chaseSpeed = speeds[min(max(variant,0),speeds.count-1)] + CGFloat(min(level, 9) * 3)
             var separation: CGFloat = 0
             for other in zombies where other !== zombie {
                 let gap = zombie.position.x - other.position.x
