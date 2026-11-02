@@ -71,10 +71,26 @@ struct RootView: View {
     }
 
     private var home:some View {
-        VStack(spacing:18) {
+        let challenge = DailyChallengeSpec.current()
+        let challengeProgress = progress.dailyChallengeDate == challenge.date ? progress.dailyChallengeProgress : 0
+        let challengeComplete = progress.dailyChallengeDate == challenge.date && progress.dailyChallengeClaimed
+        return VStack(spacing:18) {
             Text("THE ROAD\nDOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineTextAlignment(.center).tracking(-1)
             Text("10 REGIONS  •  30 RUNS  •  NO SAFE STOPS").font(.system(size:11,weight:.heavy,design:.rounded)).tracking(2).foregroundStyle(.orange)
             HStack(spacing:14) { metric("BEST DISTANCE","\(progress.bestDistance)m");metric("INFECTED","\(progress.totalKills)") }
+            VStack(spacing:6) {
+                HStack {
+                    Text("DAILY CHALLENGE").font(.system(size:10,weight:.black)).foregroundStyle(.orange)
+                    Spacer()
+                    Text(challengeComplete ? "COMPLETE · +$\(challenge.reward)" : "REWARD · $\(challenge.reward)")
+                        .font(.system(size:9,weight:.black)).foregroundStyle(.yellow)
+                }
+                Text(challenge.title).font(.system(size:14,weight:.black))
+                Text(challenge.detail).font(.system(size:10)).foregroundStyle(.white.opacity(0.65))
+                ProgressView(value:Double(min(challengeProgress,challenge.target)),total:Double(challenge.target)).tint(challengeComplete ? .green : .orange)
+                Text("\(min(challengeProgress,challenge.target)) / \(challenge.target)")
+                    .font(.system(size:9,weight:.bold,design:.monospaced)).foregroundStyle(.white.opacity(0.55))
+            }.padding(12).frame(maxWidth:320).background(.white.opacity(0.06),in:RoundedRectangle(cornerRadius:12))
             Button { explorationMode=false;selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
                 .buttonStyle(PrimaryStyle())
             Button { screen="howto" } label:{Text("HOW TO SURVIVE").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
