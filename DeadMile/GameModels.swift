@@ -125,6 +125,7 @@ final class PlayerProgress {
     }
 }
 
+@MainActor
 private struct SavePayload: Codable {
     var version = 1
     var cash: Int; var bestDistance: Int; var unlockedLevel: Int; var unlockedVehicles: [Int]
