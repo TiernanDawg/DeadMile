@@ -1,0 +1,51 @@
+name: Build DEAD MILE IPA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Select pinned Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          xcodebuild -runFirstLaunch
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+      - name: Build unsigned device app
+        run: |
+          set -o pipefail
+          xcodebuild -project DeadMile.xcodeproj -scheme DeadMile -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="build/DerivedData/Build/Products/Release-iphoneos/DeadMile.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::Expected app bundle missing: $APP"
+            tail -n 160 build.log || true
+            exit 1
+          fi
+          mkdir -p build/ipa/Payload
+          ditto "$APP" build/ipa/Payload/DeadMile.app
+          (cd build/ipa && /usr/bin/zip -qry DeadMile.ipa Payload)
+          test -s build/ipa/DeadMile.ipa
+      - name: Upload IPA and build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeadMile-unsigned-IPA
+          path: |
+            build/ipa/DeadMile.ipa
+            build.log
+          if-no-files-found: error
+          retention-days: 30
