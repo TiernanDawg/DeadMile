@@ -1,4 +1,4 @@
-import SpriteKit
+@preconcurrency import SpriteKit
 import UIKit
 
 @MainActor
