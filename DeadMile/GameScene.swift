@@ -4,7 +4,7 @@ import UIKit
 @MainActor
 final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false }
-    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool }
+    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int }
     var input = Input()
     var onFinish: ((Result)->Void)?
     var onHUD: ((Int, Int, CGFloat, CGFloat, CGFloat, Int)->Void)?
@@ -19,6 +19,10 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private var cameraNode = SKCameraNode()
     private var fuel: CGFloat = Tune.baseFuel
     private var health: CGFloat = Tune.baseHealth
+    private var maxHealth: CGFloat = Tune.baseHealth
+    private var fuelPickups = 0
+    private var cashPickups = 0
+    private var boostPickups = 0
     private var boost: CGFloat = 0
     private var distance: CGFloat = 0
     private var kills = 0
@@ -106,7 +110,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private func buildVehicle() {
         let width=CGFloat(150*vehicle.width)
         fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
-        health = Tune.baseHealth * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
+        maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
+        health = maxHealth
         let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color),size:CGSize(width:width,height:65))
         car.position=CGPoint(x:150,y:155); car.zPosition=10
         car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
@@ -239,10 +244,10 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         }
         if let pickup=(a?.name?.hasPrefix("pickup-")==true ? a : b?.name?.hasPrefix("pickup-")==true ? b : nil) {
             let kind=Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
-            if kind==0 { fuel=min(CGFloat(vehicle.fuel)+CGFloat(upgradeTiers["fuel",default:0])*15,fuel+28) }
-            if kind==1 { cash += 75 }
-            if kind==2 { boost=min(100,boost+55) }
-            if kind==3 { health=min(100,health+35) }
+            if kind==0 { fuel=min(CGFloat(vehicle.fuel)+CGFloat(upgradeTiers["fuel",default:0])*15,fuel+28); fuelPickups += 1 }
+            if kind==1 { cash += 75; cashPickups += 1 }
+            if kind==2 { boost=min(100,boost+55); boostPickups += 1 }
+            if kind==3 { health=min(maxHealth,health+35) }
             FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
             emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent()
         }
@@ -266,16 +271,17 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         zombies.removeAll(); pickups.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
         fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
-        health = Tune.baseHealth * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
+        maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
+        health = maxHealth
         boost = 0; distance = 0
-        kills = 0; cash = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
+        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
     private func finish(destroyed:Bool) {
         guard !ended else { return }
         ended=true
-        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/100)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed)
+        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/100)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups)
         onFinish?(result)
         isPaused=true
     }
