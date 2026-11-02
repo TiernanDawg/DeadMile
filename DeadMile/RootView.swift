@@ -117,7 +117,7 @@ struct RootView: View {
             TabView(selection:$garageVehicle) {
                 ForEach(VehicleSpec.roster) { spec in
                     VStack(spacing:8) {
-                        if let cgImage = ArtFactory.vehicle(colorHex:spec.color).cgImage() {
+                        if let cgImage = ArtFactory.vehicle(colorHex:spec.color,style:spec.id).cgImage() {
                             Image(uiImage:UIImage(cgImage:cgImage)).resizable().scaledToFit().frame(maxWidth:360,maxHeight:115)
                         } else {
                             Image(systemName:"car.side").font(.system(size:72)).foregroundStyle(.orange)
