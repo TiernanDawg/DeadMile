@@ -190,8 +190,11 @@ final class PlayerProgress {
     }
 
     func claimDaily() -> Int {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
         let today = formatter.string(from: Date())
         guard today != lastDailyClaim else { return 0 }
         lastDailyClaim = today
@@ -224,8 +227,21 @@ final class PlayerProgress {
         save()
     }
 
-    func save() {
-        do {
+    func importSave(data: Data) -> Bool {
+        guard let payload = try? JSONDecoder().decode(SavePayload.self, from: data),
+              payload.version == 1,
+              payload.cash >= 0,
+              payload.bestDistance >= 0,
+              payload.unlockedVehicles.contains(payload.selectedVehicle),
+              Set(payload.unlockedVehicles).isSubset(of: Set(VehicleSpec.roster.map { $0.id })),
+              payload.upgrades.values.allSatisfy({ (0...5).contains($0) }),
+              (0.8...1.3).contains(payload.controlScale) else { return false }
+        payload.apply(to: self)
+        save()
+        return true
+    }
+
+    func save() {        do {
             let directory = Self.saveURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(SavePayload(progress: self))
