@@ -107,6 +107,8 @@ final class PlayerProgress {
     }
     func save() {
         do {
+            let directory = Self.saveURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(SavePayload(progress: self))
             try data.write(to: Self.saveURL, options: .atomic)
         } catch { print("Save failed: \(error.localizedDescription)") }
