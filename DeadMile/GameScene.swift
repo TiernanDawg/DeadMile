@@ -103,6 +103,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     private func buildVehicle() {
         let width=CGFloat(150*vehicle.width)
+        fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        health = Tune.baseHealth * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color),size:CGSize(width:width,height:65))
         car.position=CGPoint(x:150,y:155); car.zPosition=10
         car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
@@ -254,7 +256,9 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         removeAllChildren()
         zombies.removeAll(); pickups.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
-        fuel = Tune.baseFuel; health = Tune.baseHealth; boost = 0; distance = 0
+        fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        health = Tune.baseHealth * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
+        boost = 0; distance = 0
         kills = 0; cash = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; ended = false
         didMove(to: view ?? SKView())
     }
