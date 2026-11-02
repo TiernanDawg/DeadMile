@@ -300,7 +300,9 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private func spawnPickup(at point:CGPoint,kind:Int) {
         let colors:[UIColor]=[.systemGreen,.systemYellow,.systemCyan,.systemRed]
         let node=SKShapeNode(circleOfRadius:15)
-        node.fillColor=colors[kind%colors.count]; node.strokeColor=.white; node.lineWidth=3
+        node.fillColor = colors[kind % colors.count]
+        node.strokeColor = .white
+        node.lineWidth = 3
         node.position=point; node.zPosition=12; node.name="pickup-\(kind)"
         node.physicsBody=SKPhysicsBody(circleOfRadius:15); node.physicsBody?.isDynamic=false
         node.physicsBody?.categoryBitMask=4; node.physicsBody?.contactTestBitMask=1
