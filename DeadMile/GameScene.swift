@@ -132,6 +132,21 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         car.physicsBody?.contactTestBitMask=2 | 4 | 8
         car.physicsBody?.collisionBitMask=UInt32.max
         addChild(car); chassis=car
+        if upgradeTiers["weapon",default:0] > 0 {
+            let mount = SKShapeNode(rectOf:CGSize(width:34,height:10),cornerRadius:3)
+            mount.fillColor = UIColor(white:0.22,alpha:1)
+            mount.strokeColor = UIColor(white:0.7,alpha:1)
+            mount.lineWidth = 2
+            mount.position = CGPoint(x:48,y:35)
+            mount.zPosition = 3
+            car.addChild(mount)
+            let barrel = SKShapeNode(rectOf:CGSize(width:35,height:5),cornerRadius:2)
+            barrel.fillColor = UIColor(white:0.12,alpha:1)
+            barrel.strokeColor = .white
+            barrel.position = CGPoint(x:76,y:41)
+            barrel.zPosition = 4
+            car.addChild(barrel)
+        }
         for x in [-width*0.28,width*0.28] {
             let wheel=SKSpriteNode(texture:wheelTexture(),size:CGSize(width:36,height:36))
             wheel.position=CGPoint(x:car.position.x+x,y:car.position.y-26); wheel.zPosition=11
@@ -386,7 +401,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             if kind==3 { health=min(maxHealth,health+35) }
             if kind==4 { hiddenKits += 1; cash += 250; fuel=min(maxFuel,fuel+18); health=min(maxHealth,health+15); boost=min(100,boost+25) }
             FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
-            emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent()
+            emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent(); pickups.removeAll { $0 === pickup }
         }
     }
 
