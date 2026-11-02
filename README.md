@@ -23,3 +23,7 @@ GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it 
 ## Controls
 
 Hold gas, reverse/brake, air tilt, and boost. Fuel pickups refill the tank; cash bundles and infected kills pay out.
+
+## QA status and remaining work
+
+This commit is a playable engineering prototype, not a production-complete release. The current build has not yet been verified by a successful GitHub Actions run or on-device QA. The following brief requirements are not complete: all ten zombie archetypes and their unique AI, full 30-area progression and unlock flow, hazards/obstacles, vehicle destruction and detachable parts, mounted weapons, mission objective/star tracking, exploration mode and hidden kits, daily challenge validation, full biome music/engine loop, save import, and the requested accessibility/control customization. Do not treat the listed definitions or menu entries as proof those systems are implemented.
