@@ -25,7 +25,7 @@ struct GameView: View {
         s.level=level; s.area=area; s.explorationMode=explorationMode
         s.audioEnabled=progress.audioEnabled; s.hapticsEnabled=progress.hapticsEnabled
         s.vehicle=VehicleSpec.roster.first(where:{$0.id==progress.selectedVehicle}) ?? VehicleSpec.roster[0]
-        s.upgradeTiers=["engine":progress.tier("engine"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor")]
+        s.upgradeTiers=["engine":progress.tier("engine"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor"),"weapon":progress.tier("weapon")]
         _scene=State(initialValue:s)
     }
 
@@ -57,6 +57,9 @@ struct GameView: View {
                     }
                     Spacer()
                     HStack(spacing:10) {
+                        if progress.tier("weapon") > 0 {
+                            holdButton("FIRE",icon:"scope",color:.red) { scene.input.fire=$0 }
+                        }
                         holdButton("BOOST",icon:"bolt.fill",color:.cyan) { scene.input.boost=$0 }
                         holdButton("GAS",icon:"arrowtriangle.right.fill",color:.green) { scene.input.gas=$0 }
                     }
@@ -66,7 +69,7 @@ struct GameView: View {
                 overlay(title:"PAUSED",subtitle:"The wasteland can wait.",primary:"RESUME",secondary:"QUIT RUN",primaryAction:{paused=false;scene.isPaused=false},secondaryAction:onExit)
             }
             if let result {
-                overlay(title:result.destroyed ? "WRECKED" : "OUT OF FUEL",subtitle:"\(result.distance)m  •  \(result.kills) infected eliminated  •  +$\(result.earned)",primary:"UPGRADE",secondary:"RETRY",primaryAction:onExit,secondaryAction:{self.result=nil;scene.resetRun()})
+                overlay(title:result.destroyed ? "WRECKED" : "OUT OF FUEL",subtitle:"\(result.distance)m  •  \(result.kills) infected eliminated  •  \(result.hiddenKits) caches  •  +$\(result.earned)",primary:"UPGRADE",secondary:"RETRY",primaryAction:onExit,secondaryAction:{self.result=nil;scene.resetRun()})
             }
         }
         .onAppear {
