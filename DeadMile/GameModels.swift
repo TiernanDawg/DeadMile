@@ -31,6 +31,44 @@ struct RunRecord: Codable {
     var earned: Int
     var level: Int
     var area: Int
+    var fuelPickups: Int = 0
+    var cashPickups: Int = 0
+    var boostPickups: Int = 0
+}
+
+struct MissionSpec: Identifiable {
+    enum Metric {
+        case kills, distance, fuelPickups, cashPickups, boostPickups, runs, cashEarned, areasCleared
+    }
+    let id: Int
+    let title: String
+    let detail: String
+    let metric: Metric
+    let target: Int
+    let reward: Int
+
+    static let all: [MissionSpec] = (0..<50).map { index in
+        let tier = index / 8 + 1
+        let templates: [(String, String, Metric, Int)] = [
+            ("THIN THE HORDE", "Eliminate infected", .kills, 8),
+            ("KEEP ROLLING", "Reach a best distance of", .distance, 1200),
+            ("FUEL RUNNER", "Collect fuel cans", .fuelPickups, 2),
+            ("SCAVENGER", "Collect supply cash drops", .cashPickups, 3),
+            ("FULL THROTTLE", "Collect boost cells", .boostPickups, 2),
+            ("ROAD VETERAN", "Complete runs", .runs, 5),
+            ("WASTELAND ECONOMY", "Earn cash from runs", .cashEarned, 1500),
+            ("ROUTE CLEARER", "Clear story areas", .areasCleared, 1)
+        ]
+        let template = templates[index % templates.count]
+        return MissionSpec(
+            id: index,
+            title: "\(template.0) · \(String(format: "%02d", index + 1))",
+            detail: "\(template.1) \(template.2 == .distance || template.2 == .cashEarned ? "" : "")",
+            metric: template.2,
+            target: template.3 * tier,
+            reward: 100 + index * 30
+        )
+    }
 }
 
 @Observable
@@ -52,14 +90,22 @@ final class PlayerProgress {
     var hapticsEnabled = true
     var largeHUD = false
     var controlScale = 1.0
+    var totalFuelPickups = 0
+    var totalCashPickups = 0
+    var totalBoostPickups = 0
+    var lifetimeCashEarned = 0
+    var areasCleared = 0
+    var claimedMissions: Set<Int> = []
 
     func tier(_ category: String, vehicle: Int? = nil) -> Int {
         upgrades["\(vehicle ?? selectedVehicle)-\(category)", default: 0]
     }
+
     func upgradeCost(_ category: String, vehicle: Int? = nil) -> Int {
         let t = tier(category, vehicle: vehicle)
         return Int(Double(Tune.upgradeBaseCost) * pow(Tune.upgradeCostGrowth, Double(t)) * (1 + Double(vehicle ?? selectedVehicle) * 0.16))
     }
+
     func buyUpgrade(_ category: String) -> Bool {
         let key = "\(selectedVehicle)-\(category)"
         let current = upgrades[key, default: 0]
@@ -71,6 +117,7 @@ final class PlayerProgress {
         save()
         return true
     }
+
     func buyVehicle(_ id: Int) -> Bool {
         guard let spec = VehicleSpec.roster.first(where: { $0.id == id }), !unlockedVehicles.contains(id), cash >= spec.price else { return false }
         cash -= spec.price
@@ -79,25 +126,60 @@ final class PlayerProgress {
         save()
         return true
     }
+
+    func missionProgress(_ mission: MissionSpec) -> Int {
+        switch mission.metric {
+        case .kills: return totalKills
+        case .distance: return bestDistance
+        case .fuelPickups: return totalFuelPickups
+        case .cashPickups: return totalCashPickups
+        case .boostPickups: return totalBoostPickups
+        case .runs: return runs
+        case .cashEarned: return lifetimeCashEarned
+        case .areasCleared: return areasCleared
+        }
+    }
+
     func finish(_ record: RunRecord) {
         runs += 1
         totalKills += record.kills
+        totalFuelPickups += record.fuelPickups
+        totalCashPickups += record.cashPickups
+        totalBoostPickups += record.boostPickups
+        lifetimeCashEarned += record.earned
         bestDistance = max(bestDistance, record.distance)
         cash += record.earned
+
         let key = "\(record.level)-\(record.area)"
         let old = areaProgress[key, default: 0]
-        if record.distance >= Int(Biome.all[min(max(record.level,0),9)].areaLengths[min(max(record.area,0),2)]) {
-            areaProgress[key] = max(old, 1)
+        let biome = Biome.all[min(max(record.level, 0), 9)]
+        let requiredDistance = Int(biome.areaLengths[min(max(record.area, 0), 2)])
+        if record.distance >= requiredDistance {
+            if old == 0 { areasCleared += 1 }
+            areaProgress[key] = 1
             if record.area >= 2 { unlockedLevel = max(unlockedLevel, min(9, record.level + 1)) }
-            if record.level >= 9 { missionsUnlocked = true; explorationUnlocked = true }
             cash += Tune.areaBonus * (record.level + 1)
+        }
+
+        if record.level >= 9 && record.area >= 2 && areaProgress[key, default: 0] > 0 {
+            missionsUnlocked = true
+            explorationUnlocked = true
+        }
+        if missionsUnlocked {
+            for mission in MissionSpec.all where !claimedMissions.contains(mission.id) {
+                if missionProgress(mission) >= mission.target {
+                    claimedMissions.insert(mission.id)
+                    cash += mission.reward
+                }
+            }
         }
         save()
     }
+
     func claimDaily() -> Int {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        let today = f.string(from: Date())
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let today = formatter.string(from: Date())
         guard today != lastDailyClaim else { return 0 }
         lastDailyClaim = today
         let reward = 250 + min(runs, 20) * 10
@@ -105,14 +187,40 @@ final class PlayerProgress {
         save()
         return reward
     }
+
+    func reset() {
+        cash = 450
+        bestDistance = 0
+        unlockedLevel = 0
+        unlockedVehicles = [0]
+        selectedVehicle = 0
+        upgrades = [:]
+        areaProgress = [:]
+        totalKills = 0
+        runs = 0
+        missionsUnlocked = false
+        explorationUnlocked = false
+        lastDailyClaim = ""
+        totalFuelPickups = 0
+        totalCashPickups = 0
+        totalBoostPickups = 0
+        lifetimeCashEarned = 0
+        areasCleared = 0
+        claimedMissions = []
+        save()
+    }
+
     func save() {
         do {
             let directory = Self.saveURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(SavePayload(progress: self))
             try data.write(to: Self.saveURL, options: .atomic)
-        } catch { print("Save failed: \(error.localizedDescription)") }
+        } catch {
+            print("Save failed: \(error.localizedDescription)")
+        }
     }
+
     static func load() -> PlayerProgress {
         let value = PlayerProgress()
         guard let data = try? Data(contentsOf: saveURL),
@@ -120,29 +228,87 @@ final class PlayerProgress {
         payload.apply(to: value)
         return value
     }
+
     private static var saveURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("deadmile-save-v1.json")
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("deadmile-save-v1.json")
     }
 }
 
 @MainActor
 private struct SavePayload: Codable {
     var version = 1
-    var cash: Int; var bestDistance: Int; var unlockedLevel: Int; var unlockedVehicles: [Int]
-    var selectedVehicle: Int; var upgrades: [String:Int]; var areaProgress: [String:Int]
-    var totalKills: Int; var runs: Int; var missionsUnlocked: Bool; var explorationUnlocked: Bool
-    var lastDailyClaim: String; var audioEnabled: Bool; var hapticsEnabled: Bool; var largeHUD: Bool; var controlScale: Double
+    var cash: Int
+    var bestDistance: Int
+    var unlockedLevel: Int
+    var unlockedVehicles: [Int]
+    var selectedVehicle: Int
+    var upgrades: [String: Int]
+    var areaProgress: [String: Int]
+    var totalKills: Int
+    var runs: Int
+    var missionsUnlocked: Bool
+    var explorationUnlocked: Bool
+    var lastDailyClaim: String
+    var audioEnabled: Bool
+    var hapticsEnabled: Bool
+    var largeHUD: Bool
+    var controlScale: Double
+    var totalFuelPickups: Int?
+    var totalCashPickups: Int?
+    var totalBoostPickups: Int?
+    var lifetimeCashEarned: Int?
+    var areasCleared: Int?
+    var claimedMissions: [Int]?
+
     init(progress p: PlayerProgress) {
-        cash=p.cash; bestDistance=p.bestDistance; unlockedLevel=p.unlockedLevel; unlockedVehicles=Array(p.unlockedVehicles)
-        selectedVehicle=p.selectedVehicle; upgrades=p.upgrades; areaProgress=p.areaProgress; totalKills=p.totalKills; runs=p.runs
-        missionsUnlocked=p.missionsUnlocked; explorationUnlocked=p.explorationUnlocked; lastDailyClaim=p.lastDailyClaim
-        audioEnabled=p.audioEnabled; hapticsEnabled=p.hapticsEnabled; largeHUD=p.largeHUD; controlScale=p.controlScale
+        cash = p.cash
+        bestDistance = p.bestDistance
+        unlockedLevel = p.unlockedLevel
+        unlockedVehicles = Array(p.unlockedVehicles)
+        selectedVehicle = p.selectedVehicle
+        upgrades = p.upgrades
+        areaProgress = p.areaProgress
+        totalKills = p.totalKills
+        runs = p.runs
+        missionsUnlocked = p.missionsUnlocked
+        explorationUnlocked = p.explorationUnlocked
+        lastDailyClaim = p.lastDailyClaim
+        audioEnabled = p.audioEnabled
+        hapticsEnabled = p.hapticsEnabled
+        largeHUD = p.largeHUD
+        controlScale = p.controlScale
+        totalFuelPickups = p.totalFuelPickups
+        totalCashPickups = p.totalCashPickups
+        totalBoostPickups = p.totalBoostPickups
+        lifetimeCashEarned = p.lifetimeCashEarned
+        areasCleared = p.areasCleared
+        claimedMissions = Array(p.claimedMissions)
     }
+
     func apply(to p: PlayerProgress) {
         guard version == 1 else { return }
-        p.cash=cash; p.bestDistance=bestDistance; p.unlockedLevel=unlockedLevel; p.unlockedVehicles=Set(unlockedVehicles)
-        p.selectedVehicle=selectedVehicle; p.upgrades=upgrades; p.areaProgress=areaProgress; p.totalKills=totalKills; p.runs=runs
-        p.missionsUnlocked=missionsUnlocked; p.explorationUnlocked=explorationUnlocked; p.lastDailyClaim=lastDailyClaim
-        p.audioEnabled=audioEnabled; p.hapticsEnabled=hapticsEnabled; p.largeHUD=largeHUD; p.controlScale=controlScale
+        p.cash = cash
+        p.bestDistance = bestDistance
+        p.unlockedLevel = unlockedLevel
+        p.unlockedVehicles = Set(unlockedVehicles)
+        p.selectedVehicle = selectedVehicle
+        p.upgrades = upgrades
+        p.areaProgress = areaProgress
+        p.totalKills = totalKills
+        p.runs = runs
+        p.missionsUnlocked = missionsUnlocked
+        p.explorationUnlocked = explorationUnlocked
+        p.lastDailyClaim = lastDailyClaim
+        p.audioEnabled = audioEnabled
+        p.hapticsEnabled = hapticsEnabled
+        p.largeHUD = largeHUD
+        p.controlScale = controlScale
+        p.totalFuelPickups = totalFuelPickups ?? 0
+        p.totalCashPickups = totalCashPickups ?? 0
+        p.totalBoostPickups = totalBoostPickups ?? 0
+        p.lifetimeCashEarned = lifetimeCashEarned ?? 0
+        p.areasCleared = areasCleared ?? 0
+        p.claimedMissions = Set(claimedMissions ?? [])
     }
 }
