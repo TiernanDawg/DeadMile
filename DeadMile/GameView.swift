@@ -15,6 +15,7 @@ struct GameView: View {
     @State private var result: DeadMileScene.Result?
     @State private var paused=false
     @State private var scene: DeadMileScene
+    @Environment(\.scenePhase) private var scenePhase
 
     init(progress:PlayerProgress,level:Int,area:Int,onExit:@escaping ()->Void) {
         self.progress=progress; self.level=level; self.area=area; self.onExit=onExit
@@ -74,6 +75,12 @@ struct GameView: View {
                 progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area))
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active && result == nil {
+                paused = true
+                scene.isPaused = true
+            }
+        }
         .onDisappear { progress.save() }
     }
 
@@ -87,7 +94,7 @@ struct GameView: View {
     }
     private func holdButton(_ title:String,icon:String,color:Color,action:@escaping(Bool)->Void)->some View {
         Image(systemName:icon).font(.system(size:23,weight:.black)).foregroundStyle(color)
-            .frame(width:68,height:62).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:17))
+            .frame(width:68 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1),height:62 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1)).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:17))
             .overlay(RoundedRectangle(cornerRadius:17).stroke(color.opacity(0.5),lineWidth:1))
             .contentShape(RoundedRectangle(cornerRadius:17))
             .gesture(DragGesture(minimumDistance:0).onChanged{_ in action(true)}.onEnded{_ in action(false)})
