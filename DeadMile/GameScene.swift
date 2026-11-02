@@ -281,7 +281,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private func finish(destroyed:Bool) {
         guard !ended else { return }
         ended=true
-        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/100)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups)
+        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/1000)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups)
         onFinish?(result)
         isPaused=true
     }
