@@ -186,7 +186,8 @@ struct RootView: View {
                                 VStack(spacing:3) {
                                     Text(completed ? "PAID" : "+$\(mission.reward)")
                                         .font(.system(size:10,weight:.black)).foregroundStyle(completed ? .green : .yellow)
-                                    if completed { Image(systemName:"star.fill").font(.system(size:10)).foregroundStyle(.yellow) }
+                                    Text(String(repeating:"★",count:progress.missionStars[mission.id,default:0]) + String(repeating:"☆",count:3-progress.missionStars[mission.id,default:0]))
+                                        .font(.system(size:10,weight:.black)).foregroundStyle(.yellow)
                                 }
                             }.padding(10).background(.white.opacity(0.06),in:RoundedRectangle(cornerRadius:10))
                         }
