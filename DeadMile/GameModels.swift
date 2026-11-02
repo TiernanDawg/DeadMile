@@ -157,24 +157,26 @@ final class PlayerProgress {
         bestDistance = max(bestDistance, record.distance)
         cash += record.earned
 
-        let key = "\(record.level)-\(record.area)"
-        let old = areaProgress[key, default: 0]
-        let biome = Biome.all[min(max(record.level, 0), 9)]
-        let requiredDistance = Int(biome.areaLengths[min(max(record.area, 0), 2)])
-        if record.distance >= requiredDistance {
-            if old == 0 {
-                areasCleared += 1
-                cash += Tune.areaBonus * (record.level + 1)
+        if !record.isExploration {
+            let key = "\(record.level)-\(record.area)"
+            let old = areaProgress[key, default: 0]
+            let biome = Biome.all[min(max(record.level, 0), 9)]
+            let requiredDistance = Int(biome.areaLengths[min(max(record.area, 0), 2)])
+            if record.distance >= requiredDistance {
+                if old == 0 {
+                    areasCleared += 1
+                    cash += Tune.areaBonus * (record.level + 1)
+                }
+                areaProgress[key] = 1
+                if record.area >= 2 { unlockedLevel = max(unlockedLevel, min(9, record.level + 1)) }
             }
-            areaProgress[key] = 1
-            if record.area >= 2 { unlockedLevel = max(unlockedLevel, min(9, record.level + 1)) }
-        }
 
-        if record.level == 0 && record.area >= 2 && areaProgress[key, default: 0] > 0 {
-            missionsUnlocked = true
-        }
-        if record.level >= 9 && record.area >= 2 && areaProgress[key, default: 0] > 0 {
-            explorationUnlocked = true
+            if record.level == 0 && record.area >= 2 && areaProgress[key, default: 0] > 0 {
+                missionsUnlocked = true
+            }
+            if record.level >= 9 && record.area >= 2 && areaProgress[key, default: 0] > 0 {
+                explorationUnlocked = true
+            }
         }
         if missionsUnlocked {
             for mission in MissionSpec.all where !claimedMissions.contains(mission.id) {
