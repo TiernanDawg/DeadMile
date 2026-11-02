@@ -187,12 +187,26 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
             lastSpawn=car.position.x
             spawnZombie(at:CGPoint(x:car.position.x+CGFloat.random(in:360...650),y:CGFloat.random(in:140...235)))
         }
+        for zombie in zombies {
+            let delta = car.position.x - zombie.position.x
+            let direction: CGFloat = delta < 0 ? -1 : 1
+            let chaseSpeed = CGFloat(24 + min(level, 9) * 3)
+            var separation: CGFloat = 0
+            for other in zombies where other !== zombie {
+                let gap = zombie.position.x - other.position.x
+                if abs(gap) < 64 { separation += gap >= 0 ? 13 : -13 }
+            }
+            zombie.physicsBody?.velocity.dx = max(-60, min(60, direction * chaseSpeed + separation))
+        }
         for zombie in zombies where zombie.position.x < cameraNode.position.x-850 { zombie.removeFromParent() }
         zombies.removeAll { $0.parent == nil }
         cameraNode.position=CGPoint(x:max(400,car.position.x+Tune.cameraLookAhead),y:max(230,car.position.y+115))
         for node in children where node.name?.hasPrefix("parallax-") == true {
             let layer=CGFloat(Int(node.name.map { String($0.suffix(1)) } ?? "0") ?? 0)
-            node.position.x = cameraNode.position.x * layer * -0.12
+            let parallax=0.10 + layer * 0.06
+            let tileWidth:CGFloat=2660
+            let wraps=floor(cameraNode.position.x * parallax / tileWidth)
+            node.position.x = cameraNode.position.x * (1 - parallax) + wraps * tileWidth
         }
         if speed < Tune.lowSpeedEndThreshold && fuel <= 0 { lowSpeedTime += dt } else { lowSpeedTime=0 }
         if health <= 0 || (fuel <= 0 && lowSpeedTime > Tune.lowSpeedEndDelay) { finish(destroyed:health<=0) }
@@ -205,18 +219,19 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     private func spawnZombie(at point:CGPoint) {
         let variant=Int.random(in:0..<3)
-        let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:44,height:65))
+        let scale=Biome.all[min(max(level,0),9)].zombieScale
+        let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:44*scale,height:65*scale))
         zombie.position=point; zombie.zPosition=8; zombie.name="zombie"
-        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:28,height:48))
-        zombie.physicsBody?.mass=variant == 2 ? 2.8 : 0.9
+        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:28*scale,height:48*scale))
+        zombie.physicsBody?.mass=(variant == 2 ? 2.8 : 0.9) * scale
+        zombie.physicsBody?.linearDamping=0.7
+        zombie.physicsBody?.angularDamping=0.8
         zombie.physicsBody?.isDynamic=true
         zombie.physicsBody?.allowsRotation=true
         zombie.physicsBody?.categoryBitMask=2
         zombie.physicsBody?.contactTestBitMask=1
         zombie.physicsBody?.collisionBitMask=1
         addChild(zombie); zombies.append(zombie)
-        let walk=SKAction.sequence([.moveBy(x:-18,y:0,duration:0.5),.moveBy(x:18,y:0,duration:0.5)])
-        zombie.run(.repeatForever(walk))
     }
 
     private func spawnPickup(at point:CGPoint,kind:Int) {
