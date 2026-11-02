@@ -18,6 +18,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private var wheels: [SKSpriteNode] = []
     private var cameraNode = SKCameraNode()
     private var fuel: CGFloat = Tune.baseFuel
+    private var maxFuel: CGFloat = Tune.baseFuel
     private var health: CGFloat = Tune.baseHealth
     private var maxHealth: CGFloat = Tune.baseHealth
     private var fuelPickups = 0
@@ -111,7 +112,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     private func buildVehicle() {
         let width=CGFloat(150*vehicle.width)
-        fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id),size:CGSize(width:width,height:65))
@@ -224,7 +226,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         if health <= 0 || (fuel <= 0 && lowSpeedTime > Tune.lowSpeedEndDelay) { finish(destroyed:health<=0) }
         if currentTime-lastHUD > 0.12 {
             lastHUD=currentTime
-            onHUD?(Int(distance/10),Int(speed*0.22),fuel,health,boost,cash)
+            onHUD?(Int(distance/10),Int(speed*0.22),maxFuel > 0 ? fuel / maxFuel * 100 : 0,maxHealth > 0 ? health / maxHealth * 100 : 0,boost,cash)
         }
         if car.position.y < -240 { health=0 }
     }
@@ -329,7 +331,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         }
         if let pickup=(a?.name?.hasPrefix("pickup-")==true ? a : b?.name?.hasPrefix("pickup-")==true ? b : nil) {
             let kind=Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
-            if kind==0 { fuel=min(CGFloat(vehicle.fuel)+CGFloat(upgradeTiers["fuel",default:0])*15,fuel+28); fuelPickups += 1 }
+            if kind==0 { fuel=min(maxFuel,fuel+28); fuelPickups += 1 }
             if kind==1 { cash += 75; cashPickups += 1 }
             if kind==2 { boost=min(100,boost+55); boostPickups += 1 }
             if kind==3 { health=min(maxHealth,health+35) }
