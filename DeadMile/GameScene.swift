@@ -33,7 +33,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     override func didMove(to view: SKView) {
         backgroundColor = UIColor(red:0.12,green:0.10,blue:0.12,alpha:1)
-        physicsWorld.gravity = CGVector(dx:0,dy:CGFloat(-Tune.gravity))
+        physicsWorld.gravity = CGVector(dx:0,dy:Tune.gravity)
         physicsWorld.contactDelegate = self
         camera = cameraNode
         addChild(cameraNode)
@@ -243,6 +243,16 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
             let move=SKAction.moveBy(x:CGFloat.random(in:-38...38),y:CGFloat.random(in:8...42),duration:0.35)
             p.run(.sequence([move,.fadeOut(withDuration:0.18),.removeFromParent()]))
         }
+    }
+
+    func resetRun() {
+        isPaused = false
+        removeAllChildren()
+        zombies.removeAll(); pickups.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
+        chassis = nil
+        fuel = Tune.baseFuel; health = Tune.baseHealth; boost = 0; distance = 0
+        kills = 0; cash = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; ended = false
+        didMove(to: view ?? SKView())
     }
 
     private func finish(destroyed:Bool) {
