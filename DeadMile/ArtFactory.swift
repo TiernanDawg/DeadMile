@@ -85,7 +85,7 @@ enum ArtFactory {
     }
 
     static func zombie(variant: Int) -> SKTexture {
-        let type = ((variant % 5) + 5) % 5
+        let type = ((variant % 10) + 10) % 10
         let size = CGSize(width:64,height:92)
         let image = UIGraphicsImageRenderer(size:size).image { _ in
             let skins = [
@@ -93,30 +93,40 @@ enum ArtFactory {
                 UIColor(red:0.64,green:0.57,blue:0.43,alpha:1),
                 UIColor(red:0.39,green:0.55,blue:0.48,alpha:1),
                 UIColor(red:0.73,green:0.69,blue:0.48,alpha:1),
-                UIColor(red:0.47,green:0.59,blue:0.42,alpha:1)
+                UIColor(red:0.47,green:0.59,blue:0.42,alpha:1),
+                UIColor(red:0.67,green:0.39,blue:0.35,alpha:1),
+                UIColor(red:0.43,green:0.51,blue:0.39,alpha:1),
+                UIColor(red:0.76,green:0.72,blue:0.58,alpha:1),
+                UIColor(red:0.35,green:0.48,blue:0.42,alpha:1),
+                UIColor(red:0.70,green:0.73,blue:0.66,alpha:1)
             ]
             let shirts = [
                 UIColor(red:0.35,green:0.18,blue:0.16,alpha:1),
                 UIColor(red:0.19,green:0.25,blue:0.3,alpha:1),
                 UIColor(red:0.25,green:0.29,blue:0.2,alpha:1),
                 UIColor(red:0.65,green:0.54,blue:0.12,alpha:1),
-                UIColor(red:0.16,green:0.22,blue:0.18,alpha:1)
+                UIColor(red:0.16,green:0.22,blue:0.18,alpha:1),
+                UIColor(red:0.42,green:0.12,blue:0.16,alpha:1),
+                UIColor(red:0.27,green:0.30,blue:0.32,alpha:1),
+                UIColor(red:0.75,green:0.64,blue:0.20,alpha:1),
+                UIColor(red:0.18,green:0.24,blue:0.26,alpha:1),
+                UIColor(red:0.30,green:0.31,blue:0.29,alpha:1)
             ]
             let skin = skins[type]
             let shirt = shirts[type]
-            let torsoRect = CGRect(x:type == 2 ? 12 : 18,y:36,width:type == 2 ? 40 : 30,height:type == 1 ? 34 : 38)
+            let torsoRect = CGRect(x:[2,6,9].contains(type) ? 12 : 18,y:type == 9 ? 52 : 36,width:[2,6].contains(type) ? 40 : (type == 9 ? 42 : 30),height:type == 1 ? 34 : (type == 9 ? 22 : 38))
             let torso = UIBezierPath(roundedRect:torsoRect,cornerRadius:7)
             shirt.setFill(); torso.fill()
             UIColor.black.setStroke(); torso.lineWidth=3; torso.stroke()
             let head = UIBezierPath(ovalIn:CGRect(x:19,y:7,width:28,height:31))
             skin.setFill(); head.fill(); UIColor.black.setStroke(); head.lineWidth=3; head.stroke()
-            if type == 3 {
+            if [3,7].contains(type) {
                 UIColor(white:0.12,alpha:1).setFill()
                 UIBezierPath(roundedRect:CGRect(x:19,y:19,width:29,height:11),cornerRadius:4).fill()
                 UIColor(red:0.84,green:0.76,blue:0.26,alpha:1).setStroke()
                 let visor=UIBezierPath(roundedRect:CGRect(x:22,y:20,width:22,height:5),cornerRadius:2)
                 visor.lineWidth=2; visor.stroke()
-            } else if type == 4 {
+            } else if [4,8].contains(type) {
                 UIColor(white:0.22,alpha:1).setFill()
                 UIBezierPath(roundedRect:CGRect(x:16,y:5,width:34,height:13),cornerRadius:5).fill()
                 UIColor(white:0.68,alpha:1).setStroke()
@@ -125,6 +135,10 @@ enum ArtFactory {
                 UIColor(red:0.8,green:0.15,blue:0.1,alpha:1).setFill()
                 UIBezierPath(ovalIn:CGRect(x:26,y:20,width:5,height:4)).fill()
             } else {
+                if type == 5 {
+                    UIColor(red:0.72,green:0.12,blue:0.10,alpha:1).setFill()
+                    UIBezierPath(roundedRect:CGRect(x:17,y:14,width:31,height:8),cornerRadius:3).fill()
+                }
                 for x in [27,39] {
                     UIColor(red:0.85,green:0.12,blue:0.08,alpha:1).setFill()
                     UIBezierPath(ovalIn:CGRect(x:x,y:19,width:5,height:4)).fill()
@@ -141,7 +155,7 @@ enum ArtFactory {
                 UIColor.black.setStroke(); leg.lineWidth=10; leg.stroke()
                 UIColor(white:0.16,alpha:1).setStroke(); leg.lineWidth=6; leg.stroke()
             }
-            if type == 2 || type == 4 {
+            if [2,4,6,8].contains(type) {
                 UIColor(white:0.55,alpha:1).setStroke()
                 let armor=UIBezierPath(roundedRect:CGRect(x:19,y:43,width:27,height:18),cornerRadius:3)
                 armor.lineWidth=3; armor.stroke()
