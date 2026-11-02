@@ -2,7 +2,7 @@ import UIKit
 import SpriteKit
 
 enum ArtFactory {
-    static func vehicle(colorHex: String, scale: CGFloat = 1) -> SKTexture {
+    static func vehicle(colorHex: String, scale: CGFloat = 1, style: Int = 0) -> SKTexture {
         let size = CGSize(width: 260 * scale, height: 112 * scale)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
@@ -30,6 +30,40 @@ enum ArtFactory {
             let window = UIBezierPath(roundedRect: CGRect(x:78*scale,y:65*scale,width:80*scale,height:23*scale), cornerRadius: 5*scale)
             UIColor(red:0.10,green:0.17,blue:0.2,alpha:1).setFill(); window.fill()
             UIColor.white.withAlphaComponent(0.5).setStroke(); window.lineWidth=2*scale; window.stroke()
+            if style == 4 {
+                for x in stride(from:86,through:190,by:24) {
+                    UIColor(red:0.10,green:0.17,blue:0.2,alpha:1).setFill()
+                    UIBezierPath(rect:CGRect(x:CGFloat(x)*scale,y:64*scale,width:17*scale,height:19*scale)).fill()
+                }
+            }
+            if [1,5,8].contains(style) {
+                c.setStrokeColor(UIColor(white:0.62,alpha:1).cgColor)
+                c.setLineWidth(5*scale)
+                c.move(to:CGPoint(x:72*scale,y:88*scale))
+                c.addLine(to:CGPoint(x:82*scale,y:103*scale))
+                c.addLine(to:CGPoint(x:166*scale,y:103*scale))
+                c.addLine(to:CGPoint(x:178*scale,y:86*scale))
+                c.strokePath()
+            }
+            if [2,6,9].contains(style) {
+                UIColor(red:0.24,green:0.25,blue:0.23,alpha:1).setFill()
+                UIBezierPath(roundedRect:CGRect(x:92*scale,y:87*scale,width:72*scale,height:17*scale),cornerRadius:3*scale).fill()
+                UIColor(white:0.68,alpha:1).setStroke()
+                let rack=UIBezierPath(rect:CGRect(x:87*scale,y:85*scale,width:82*scale,height:20*scale))
+                rack.lineWidth=3*scale; rack.stroke()
+            }
+            if [3,7].contains(style) {
+                UIColor(red:0.92,green:0.2,blue:0.12,alpha:1).setFill()
+                UIBezierPath(roundedRect:CGRect(x:93*scale,y:91*scale,width:15*scale,height:8*scale),cornerRadius:2*scale).fill()
+                UIColor(red:0.2,green:0.65,blue:0.95,alpha:1).setFill()
+                UIBezierPath(roundedRect:CGRect(x:132*scale,y:91*scale,width:15*scale,height:8*scale),cornerRadius:2*scale).fill()
+            }
+            if style >= 5 {
+                UIColor(white:0.28,alpha:1).setFill()
+                let plate=UIBezierPath(roundedRect:CGRect(x:198*scale,y:22*scale,width:48*scale,height:14*scale),cornerRadius:3*scale)
+                plate.fill()
+                UIColor(white:0.72,alpha:1).setStroke(); plate.lineWidth=2*scale; plate.stroke()
+            }
             for x in [62,194] {
                 let wheel = CGRect(x:CGFloat(x)*scale,y:3*scale,width:47*scale,height:47*scale)
                 UIColor(white:0.08,alpha:1).setFill(); UIBezierPath(ovalIn:wheel).fill()
@@ -51,23 +85,66 @@ enum ArtFactory {
     }
 
     static func zombie(variant: Int) -> SKTexture {
-        let size = CGSize(width: 64, height: 92)
+        let type = ((variant % 5) + 5) % 5
+        let size = CGSize(width:64,height:92)
         let image = UIGraphicsImageRenderer(size:size).image { _ in
-            let skin = [UIColor(red:0.55,green:0.68,blue:0.43,alpha:1), UIColor(red:0.64,green:0.57,blue:0.43,alpha:1), UIColor(red:0.39,green:0.55,blue:0.48,alpha:1)][variant % 3]
-            let shirt = [UIColor(red:0.35,green:0.18,blue:0.16,alpha:1), UIColor(red:0.19,green:0.25,blue:0.3,alpha:1), UIColor(red:0.38,green:0.34,blue:0.18,alpha:1)][variant % 3]
-            let torso=UIBezierPath(roundedRect:CGRect(x:18,y:36,width:30,height:38),cornerRadius:7)
-            shirt.setFill(); torso.fill(); UIColor.black.setStroke(); torso.lineWidth=3; torso.stroke()
-            let head=UIBezierPath(ovalIn:CGRect(x:21,y:8,width:26,height:29))
+            let skins = [
+                UIColor(red:0.55,green:0.68,blue:0.43,alpha:1),
+                UIColor(red:0.64,green:0.57,blue:0.43,alpha:1),
+                UIColor(red:0.39,green:0.55,blue:0.48,alpha:1),
+                UIColor(red:0.73,green:0.69,blue:0.48,alpha:1),
+                UIColor(red:0.47,green:0.59,blue:0.42,alpha:1)
+            ]
+            let shirts = [
+                UIColor(red:0.35,green:0.18,blue:0.16,alpha:1),
+                UIColor(red:0.19,green:0.25,blue:0.3,alpha:1),
+                UIColor(red:0.25,green:0.29,blue:0.2,alpha:1),
+                UIColor(red:0.65,green:0.54,blue:0.12,alpha:1),
+                UIColor(red:0.16,green:0.22,blue:0.18,alpha:1)
+            ]
+            let skin = skins[type]
+            let shirt = shirts[type]
+            let torsoRect = CGRect(x:type == 2 ? 12 : 18,y:36,width:type == 2 ? 40 : 30,height:type == 1 ? 34 : 38)
+            let torso = UIBezierPath(roundedRect:torsoRect,cornerRadius:7)
+            shirt.setFill(); torso.fill()
+            UIColor.black.setStroke(); torso.lineWidth=3; torso.stroke()
+            let head = UIBezierPath(ovalIn:CGRect(x:19,y:7,width:28,height:31))
             skin.setFill(); head.fill(); UIColor.black.setStroke(); head.lineWidth=3; head.stroke()
-            for x in [28,39] { UIColor(red:0.85,green:0.12,blue:0.08,alpha:1).setFill(); UIBezierPath(ovalIn:CGRect(x:x,y:19,width:5,height:4)).fill() }
-            let arm1=UIBezierPath(); arm1.move(to:CGPoint(x:19,y:43)); arm1.addLine(to:CGPoint(x:5,y:65))
-            let arm2=UIBezierPath(); arm2.move(to:CGPoint(x:46,y:43)); arm2.addLine(to:CGPoint(x:59,y:61))
+            if type == 3 {
+                UIColor(white:0.12,alpha:1).setFill()
+                UIBezierPath(roundedRect:CGRect(x:19,y:19,width:29,height:11),cornerRadius:4).fill()
+                UIColor(red:0.84,green:0.76,blue:0.26,alpha:1).setStroke()
+                let visor=UIBezierPath(roundedRect:CGRect(x:22,y:20,width:22,height:5),cornerRadius:2)
+                visor.lineWidth=2; visor.stroke()
+            } else if type == 4 {
+                UIColor(white:0.22,alpha:1).setFill()
+                UIBezierPath(roundedRect:CGRect(x:16,y:5,width:34,height:13),cornerRadius:5).fill()
+                UIColor(white:0.68,alpha:1).setStroke()
+                let helmet=UIBezierPath(roundedRect:CGRect(x:16,y:5,width:34,height:13),cornerRadius:5)
+                helmet.lineWidth=2; helmet.stroke()
+                UIColor(red:0.8,green:0.15,blue:0.1,alpha:1).setFill()
+                UIBezierPath(ovalIn:CGRect(x:26,y:20,width:5,height:4)).fill()
+            } else {
+                for x in [27,39] {
+                    UIColor(red:0.85,green:0.12,blue:0.08,alpha:1).setFill()
+                    UIBezierPath(ovalIn:CGRect(x:x,y:19,width:5,height:4)).fill()
+                }
+            }
+            let armStartLeft = CGPoint(x:torsoRect.minX,y:44)
+            let armStartRight = CGPoint(x:torsoRect.maxX,y:44)
+            let arm1=UIBezierPath(); arm1.move(to:armStartLeft); arm1.addLine(to:CGPoint(x:5,y:65))
+            let arm2=UIBezierPath(); arm2.move(to:armStartRight); arm2.addLine(to:CGPoint(x:59,y:61))
             UIColor.black.setStroke(); arm1.lineWidth=10; arm2.lineWidth=10; arm1.stroke(); arm2.stroke()
             skin.setStroke(); arm1.lineWidth=6; arm2.lineWidth=6; arm1.stroke(); arm2.stroke()
             for x in [24,39] {
                 let leg=UIBezierPath(); leg.move(to:CGPoint(x:x,y:70)); leg.addLine(to:CGPoint(x:x-4,y:89))
                 UIColor.black.setStroke(); leg.lineWidth=10; leg.stroke()
                 UIColor(white:0.16,alpha:1).setStroke(); leg.lineWidth=6; leg.stroke()
+            }
+            if type == 2 || type == 4 {
+                UIColor(white:0.55,alpha:1).setStroke()
+                let armor=UIBezierPath(roundedRect:CGRect(x:19,y:43,width:27,height:18),cornerRadius:3)
+                armor.lineWidth=3; armor.stroke()
             }
         }
         return SKTexture(image:image)
