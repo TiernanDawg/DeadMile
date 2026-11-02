@@ -10,6 +10,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     var onHUD: ((Int, Int, CGFloat, CGFloat, CGFloat, Int)->Void)?
     var level = 0
     var area = 0
+    var audioEnabled = true
+    var hapticsEnabled = true
     var vehicle = VehicleSpec.roster[0]
     var upgradeTiers: [String:Int] = [:]
     private var chassis: SKSpriteNode?
@@ -218,6 +220,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         if let zombie=(a?.name=="zombie" ? a : b?.name=="zombie" ? b : nil) {
             let impact=abs(contact.collisionImpulse)
             kills += 1
+            FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
             let reward=Tune.hitCash + Int(min(impact/80,20))
             cash += reward
             emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
@@ -231,6 +234,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
             if kind==1 { cash += 75 }
             if kind==2 { boost=min(100,boost+55) }
             if kind==3 { health=min(100,health+35) }
+            FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
             emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent()
         }
     }
