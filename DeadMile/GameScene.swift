@@ -207,7 +207,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             let delta = car.position.x - zombie.position.x
             let direction: CGFloat = delta < 0 ? -1 : 1
             let variant = zombie.userData?["variant"] as? Int ?? 0
-            let speeds:[CGFloat] = [24,52,17,22,20]
+            let speeds:[CGFloat] = [24,52,17,22,20,65,13,26,19,40]
             let chaseSpeed = speeds[min(max(variant,0),4)] + CGFloat(min(level, 9) * 3)
             var separation: CGFloat = 0
             for other in zombies where other !== zombie {
@@ -238,16 +238,18 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     private func spawnZombie(at point:CGPoint) {
-        let variant=Int.random(in:0..<5)
+        let variant=Int.random(in:0..<10)
         let scale=Biome.all[min(max(level,0),9)].zombieScale
-        let baseWidth:CGFloat = variant == 2 ? 54 : (variant == 1 ? 39 : 44)
-        let baseHeight:CGFloat = variant == 2 ? 72 : (variant == 1 ? 62 : 65)
+        let widths:[CGFloat] = [44,39,54,44,44,36,58,44,50,50]
+        let heights:[CGFloat] = [65,62,72,65,65,66,75,68,70,42]
+        let baseWidth = widths[variant]
+        let baseHeight = heights[variant]
         let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:baseWidth*scale,height:baseHeight*scale))
         zombie.position=point; zombie.zPosition=8; zombie.name="zombie"
-        let bodyWidth:CGFloat = variant == 2 ? 38 : (variant == 1 ? 24 : 28)
-        let bodyHeight:CGFloat = variant == 2 ? 56 : (variant == 1 ? 42 : 48)
-        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:bodyWidth*scale,height:bodyHeight*scale))
-        let masses:[CGFloat] = [0.9,0.65,2.8,1.4,1.8]
+        let bodyWidths:[CGFloat] = [28,24,38,28,30,22,44,28,36,38]
+        let bodyHeights:[CGFloat] = [48,42,56,48,50,44,62,52,58,24]
+        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:bodyWidths[variant]*scale,height:bodyHeights[variant]*scale))
+        let masses:[CGFloat] = [0.9,0.65,2.8,1.4,1.8,0.55,3.5,1.2,2.6,0.8]
         zombie.physicsBody?.mass=masses[variant] * scale
         let metadata=NSMutableDictionary()
         metadata["variant"] = variant
