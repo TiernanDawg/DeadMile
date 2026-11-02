@@ -19,6 +19,8 @@ targets:
     platform: iOS
     sources:
       - path: DeadMile
+        excludes:
+          - Info.plist
       - path: Assets.xcassets
     settings:
       base:
