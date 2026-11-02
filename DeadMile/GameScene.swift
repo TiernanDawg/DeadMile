@@ -236,8 +236,14 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         let baseHeight:CGFloat = variant == 2 ? 72 : (variant == 1 ? 62 : 65)
         let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:baseWidth*scale,height:baseHeight*scale))
         zombie.position=point; zombie.zPosition=8; zombie.name="zombie"
-        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:28*scale,height:48*scale))
-        zombie.physicsBody?.mass=(variant == 2 ? 2.8 : 0.9) * scale
+        let bodyWidth:CGFloat = variant == 2 ? 38 : (variant == 1 ? 24 : 28)
+        let bodyHeight:CGFloat = variant == 2 ? 56 : (variant == 1 ? 42 : 48)
+        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:bodyWidth*scale,height:bodyHeight*scale))
+        let masses:[CGFloat] = [0.9,0.65,2.8,1.4,1.8]
+        zombie.physicsBody?.mass=masses[variant] * scale
+        let metadata=NSMutableDictionary()
+        metadata["variant"] = variant
+        zombie.userData=metadata
         zombie.physicsBody?.linearDamping=0.7
         zombie.physicsBody?.angularDamping=0.8
         zombie.physicsBody?.isDynamic=true
