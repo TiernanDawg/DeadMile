@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var screen = "home"
     @State private var selectedLevel = 0
     @State private var selectedArea = 0
+    @State private var explorationMode = false
     @State private var garageVehicle = 0
     @State private var showShare = false
     @State private var showDebug = false
@@ -20,7 +21,7 @@ struct RootView: View {
         ZStack {
             LinearGradient(colors:[Color(red:0.07,green:0.08,blue:0.1),Color(red:0.19,green:0.12,blue:0.1)],startPoint:.topLeading,endPoint:.bottomTrailing).ignoresSafeArea()
             if screen == "run" {
-                GameView(progress:progress,level:selectedLevel,area:selectedArea,onExit:{screen="garage"})
+                GameView(progress:progress,level:selectedLevel,area:selectedArea,explorationMode:explorationMode,onExit:{screen="garage"})
             } else {
                 VStack(spacing:0) {
                     HStack {
@@ -74,10 +75,16 @@ struct RootView: View {
             Text("THE ROAD\nDOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineTextAlignment(.center).tracking(-1)
             Text("10 REGIONS  •  30 RUNS  •  NO SAFE STOPS").font(.system(size:11,weight:.heavy,design:.rounded)).tracking(2).foregroundStyle(.orange)
             HStack(spacing:14) { metric("BEST DISTANCE","\(progress.bestDistance)m");metric("INFECTED","\(progress.totalKills)") }
-            Button { selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
+            Button { explorationMode=false;selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
                 .buttonStyle(PrimaryStyle())
             Button { screen="howto" } label:{Text("HOW TO SURVIVE").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
             Button { screen="achievements" } label:{Text("FIELD RECORDS").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
+            if progress.explorationUnlocked {
+                Button { explorationMode=true;selectedLevel=9;selectedArea=2;screen="run" } label: {
+                    Label("FREE ROAM · HIDDEN CACHES",systemImage:"binoculars.fill")
+                        .font(.system(size:12,weight:.black)).foregroundStyle(.yellow)
+                }
+            }
             Button { let reward=progress.claimDaily(); if reward>0 { dailyMessage="DAILY SUPPLY +$\(reward)" } else { dailyMessage="DAILY SUPPLY ALREADY CLAIMED" } } label:{Label(dailyMessage,systemImage:"gift.fill").font(.system(size:12,weight:.bold)).foregroundStyle(.yellow)}
         }
     }
