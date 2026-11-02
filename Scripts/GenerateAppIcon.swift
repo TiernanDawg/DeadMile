@@ -8,10 +8,10 @@ let size: CGFloat = 1024
 let image = NSImage(size: NSSize(width: size, height: size))
 image.lockFocus()
 let bounds = NSRect(x: 0, y: 0, width: size, height: size)
-let gradient = NSGradient(colors: [
+guard let gradient = NSGradient(colors: [
     NSColor(calibratedRed: 0.08, green: 0.10, blue: 0.12, alpha: 1),
     NSColor(calibratedRed: 0.30, green: 0.13, blue: 0.09, alpha: 1)
-])!
+]) else { throw NSError(domain: "DeadMileIcon", code: 1) }
 gradient.draw(in: bounds, angle: 135)
 let halo = NSBezierPath(ovalIn: NSRect(x: 90, y: 130, width: 844, height: 760))
 NSColor(calibratedRed: 0.92, green: 0.31, blue: 0.13, alpha: 0.18).setFill()
