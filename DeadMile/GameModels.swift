@@ -88,7 +88,7 @@ final class PlayerProgress {
         let old = areaProgress[key, default: 0]
         if record.distance >= Int(Biome.all[min(max(record.level,0),9)].areaLengths[min(max(record.area,0),2)]) {
             areaProgress[key] = max(old, 1)
-            unlockedLevel = max(unlockedLevel, min(9, record.level + 1))
+            if record.area >= 2 { unlockedLevel = max(unlockedLevel, min(9, record.level + 1)) }
             if record.level >= 9 { missionsUnlocked = true; explorationUnlocked = true }
             cash += Tune.areaBonus * (record.level + 1)
         }
