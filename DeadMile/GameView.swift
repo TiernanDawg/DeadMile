@@ -21,6 +21,7 @@ struct GameView: View {
         let s=DeadMileScene(size:CGSize(width:896,height:414))
         s.scaleMode = .resizeFill
         s.level=level; s.area=area
+        s.audioEnabled=progress.audioEnabled; s.hapticsEnabled=progress.hapticsEnabled
         s.vehicle=VehicleSpec.roster.first(where:{$0.id==progress.selectedVehicle}) ?? VehicleSpec.roster[0]
         s.upgradeTiers=["engine":progress.tier("engine"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor")]
         _scene=State(initialValue:s)
