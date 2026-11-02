@@ -95,12 +95,16 @@ struct GameView: View {
     private func meter(_ title:String,_ value:CGFloat,_ color:Color)->some View {
         VStack(alignment:.leading,spacing:3) { Text(title).font(.system(size:9,weight:.black)); GeometryReader { geo in ZStack(alignment:.leading) { Capsule().fill(.white.opacity(0.18)); Capsule().fill(color).frame(width:geo.size.width*max(0,min(1,value/100))) } }.frame(height:7) }
             .frame(maxWidth:150).foregroundStyle(.white).padding(8).background(.black.opacity(0.35),in:RoundedRectangle(cornerRadius:8))
+            .accessibilityElement(children:.ignore).accessibilityLabel(title).accessibilityValue("\(Int(value)) percent")
     }
     private func holdButton(_ title:String,icon:String,color:Color,action:@escaping(Bool)->Void)->some View {
         Image(systemName:icon).font(.system(size:23,weight:.black)).foregroundStyle(color)
             .frame(width:68 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1),height:62 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1)).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:17))
             .overlay(RoundedRectangle(cornerRadius:17).stroke(color.opacity(0.5),lineWidth:1))
             .contentShape(RoundedRectangle(cornerRadius:17))
+            .accessibilityLabel(title)
+            .accessibilityHint("Press and hold to activate")
+            .accessibilityAddTraits(.isButton)
             .gesture(DragGesture(minimumDistance:0).onChanged{_ in action(true)}.onEnded{_ in action(false)})
     }
     private func overlay(title:String,subtitle:String,primary:String,secondary:String,primaryAction:@escaping()->Void,secondaryAction:@escaping()->Void)->some View {
