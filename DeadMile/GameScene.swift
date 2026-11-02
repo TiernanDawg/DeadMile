@@ -175,7 +175,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         zombies.removeAll { $0.parent == nil }
         cameraNode.position=CGPoint(x:max(400,car.position.x+Tune.cameraLookAhead),y:max(230,car.position.y+115))
         for node in children where node.name?.hasPrefix("parallax-") == true {
-            let layer=CGFloat(Int(node.name?.suffix(1) ?? "0") ?? 0)
+            let layer=CGFloat(Int(node.name.map { String($0.suffix(1)) } ?? "0") ?? 0)
             node.position.x = cameraNode.position.x * layer * -0.12
         }
         if speed < Tune.lowSpeedEndThreshold && fuel <= 0 { lowSpeedTime += dt } else { lowSpeedTime=0 }
