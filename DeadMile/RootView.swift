@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct RootView: View {
     @Bindable var progress: PlayerProgress
@@ -10,6 +11,10 @@ struct RootView: View {
     @State private var showShare = false
     @State private var showDebug = false
     @State private var showReset = false
+    @State private var showImportConfirm = false
+    @State private var showImportPicker = false
+    @State private var showImportNotice = false
+    @State private var importNotice = ""
 
     var body: some View {
         ZStack {
@@ -55,6 +60,9 @@ struct RootView: View {
         .sheet(isPresented: $showShare) {
             if let shareURL { ActivityView(items: [shareURL]) }
         }
+        .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json], allowsMultipleSelection: false) { result in
+            importSave(result)
+        }
         .alert("Reset all progress?",isPresented:$showReset) {
             Button("Cancel",role:.cancel){}
             Button("Reset",role:.destructive){ progress.reset(); selectedLevel=0; selectedArea=0; garageVehicle=0 }
@@ -69,6 +77,7 @@ struct RootView: View {
             Button { selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
                 .buttonStyle(PrimaryStyle())
             Button { screen="howto" } label:{Text("HOW TO SURVIVE").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
+            Button { screen="achievements" } label:{Text("FIELD RECORDS").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
             Button { let reward=progress.claimDaily(); if reward>0 { dailyMessage="DAILY SUPPLY +$\(reward)" } else { dailyMessage="DAILY SUPPLY ALREADY CLAIMED" } } label:{Label(dailyMessage,systemImage:"gift.fill").font(.system(size:12,weight:.bold)).foregroundStyle(.yellow)}
         }
     }
@@ -191,10 +200,20 @@ struct RootView: View {
             VStack(alignment:.leading) { Text("Control size");Slider(value:$progress.controlScale,in:0.8...1.3) }
             Button("RESET PROGRESS",role:.destructive){showReset=true}
             Button("PREPARE SAVE EXPORT") { exportSave() }.buttonStyle(SecondaryStyle())
+            Button("IMPORT SAVE FILE") { showImportConfirm = true }.buttonStyle(SecondaryStyle())
             if shareURL != nil {
                 Button("SHARE SAVE FILE") { showShare = true }.buttonStyle(SecondaryStyle())
             }
         }.padding(.horizontal,40).frame(maxWidth:520)
+            .confirmationDialog("Importing replaces the current local progress.", isPresented: $showImportConfirm, titleVisibility: .visible) {
+                Button("Choose JSON Save", role: .destructive) { showImportPicker = true }
+                Button("Cancel", role: .cancel) {}
+            }
+            .alert("Save import", isPresented: $showImportNotice) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importNotice)
+            }
     }
 
     private var howto:some View {
@@ -249,6 +268,28 @@ struct RootView: View {
     private func instruction(_ title:String,_ text:String)->some View {
         HStack(alignment:.top) { Text(title).font(.system(size:12,weight:.black)).frame(width:130,alignment:.leading).foregroundStyle(.orange);Text(text).font(.system(size:12)).foregroundStyle(.white.opacity(0.75));Spacer(minLength:0) }
     }
+    private func importSave(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else {
+                importNotice = "No save file was selected."
+                showImportNotice = true
+                return
+            }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let data = try Data(contentsOf: url)
+                importNotice = progress.importSave(data: data) ? "Save imported successfully." : "That file is not a valid DEAD MILE save."
+            } catch {
+                importNotice = "Could not read the selected file: \(error.localizedDescription)"
+            }
+        case .failure(let error):
+            importNotice = "Import failed: \(error.localizedDescription)"
+        }
+        showImportNotice = true
+    }
+
     private func exportSave() {
         let url=FileManager.default.temporaryDirectory.appendingPathComponent("deadmile-save-v1.json")
         progress.save()
