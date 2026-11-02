@@ -2,8 +2,15 @@ import AppKit
 import Foundation
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-let iconDirectory = root.appendingPathComponent("Assets.xcassets/AppIcon.appiconset", isDirectory: true)
+let catalogDirectory = root.appendingPathComponent("Assets.xcassets", isDirectory: true)
+let iconDirectory = catalogDirectory.appendingPathComponent("AppIcon.appiconset", isDirectory: true)
 try FileManager.default.createDirectory(at: iconDirectory, withIntermediateDirectories: true)
+let catalogContents = """
+{
+  "info" : { "author" : "xcode", "version" : 1 }
+}
+"""
+try catalogContents.write(to: catalogDirectory.appendingPathComponent("Contents.json"), atomically: true, encoding: .utf8)
 let size: CGFloat = 1024
 let image = NSImage(size: NSSize(width: size, height: size))
 image.lockFocus()
