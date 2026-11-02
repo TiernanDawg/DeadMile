@@ -111,4 +111,3 @@ private struct NeonButton:ButtonStyle {
             .background(color.opacity(configuration.isPressed ? 0.5 : 0.85),in:Capsule()).foregroundStyle(.black)
     }
 }
-\n
