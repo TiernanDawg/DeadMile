@@ -14,7 +14,7 @@ struct GameView: View {
     @State private var cash=0
     @State private var result: DeadMileScene.Result?
     @State private var paused=false
-    private let scene: DeadMileScene
+    @State private var scene: DeadMileScene
 
     init(progress:PlayerProgress,level:Int,area:Int,onExit:@escaping ()->Void) {
         self.progress=progress; self.level=level; self.area=area; self.onExit=onExit
