@@ -71,17 +71,33 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
             ScrollView(.horizontal) {
                 HStack(spacing:12) {
                     ForEach(Biome.all) { biome in
-                        Button { if biome.id<=progress.unlockedLevel { selectedLevel=biome.id;selectedArea=0;screen="run" } } label:{
+                        Button { if biome.id<=progress.unlockedLevel { selectedLevel=biome.id } } label:{
                             VStack(alignment:.leading,spacing:10) {
                                 Text(String(format:"%02d",biome.id+1)).font(.system(size:26,weight:.black,design:.rounded))
                                 Text(biome.name).font(.system(size:12,weight:.heavy)).lineLimit(2)
-                                Text(biome.id<=progress.unlockedLevel ? "AVAILABLE" : "LOCKED").font(.system(size:9,weight:.black)).foregroundStyle(biome.id<=progress.unlockedLevel ? .green : .gray)
+                                Text(biome.id<=progress.unlockedLevel ? (selectedLevel==biome.id ? "SELECTED" : "AVAILABLE") : "LOCKED").font(.system(size:9,weight:.black)).foregroundStyle(biome.id<=progress.unlockedLevel ? .green : .gray)
                             }.frame(width:142,height:120,alignment:.leading).padding(12).background(Color(red:biome.sky.0,green:biome.sky.1,blue:biome.sky.2).opacity(0.8),in:RoundedRectangle(cornerRadius:16))
                         }.disabled(biome.id>progress.unlockedLevel)
                     }
                 }.padding(.horizontal,6)
             }.frame(height:165)
-            Text("Area lengths increase with each route. Clear an area to earn its supply bonus.").font(.system(size:12)).foregroundStyle(.white.opacity(0.6)).multilineTextAlignment(.center)
+            Text(Biome.all[min(max(selectedLevel,0),9)].name).font(.system(size:14,weight:.black)).foregroundStyle(.orange)
+            HStack(spacing:10) {
+                ForEach(0..<3,id:\\.self) { area in
+                    let key = "\\(selectedLevel)-\\(area-1)"
+                    let unlocked = area == 0 || progress.areaProgress[key,default:0] > 0
+                    Button {
+                        if unlocked { selectedArea=area;screen="run" }
+                    } label: {
+                        VStack(spacing:5) {
+                            Text("AREA \\(area+1)").font(.system(size:12,weight:.black))
+                            Text("\\(Int(Biome.all[selectedLevel].areaLengths[area])) m").font(.system(size:10,weight:.bold))
+                            Text(progress.areaProgress["\\(selectedLevel)-\\(area)",default:0] > 0 ? "CLEARED" : (unlocked ? "DRIVE" : "LOCKED")).font(.system(size:9,weight:.black))
+                        }.frame(maxWidth:.infinity).padding(.vertical,13).background(unlocked ? Color.orange.opacity(0.22) : Color.white.opacity(0.05),in:RoundedRectangle(cornerRadius:12))
+                    }.disabled(!unlocked)
+                }
+            }
+            Text("Clear each area to unlock the next. The three routes grow longer and pay more.").font(.system(size:12)).foregroundStyle(.white.opacity(0.6)).multilineTextAlignment(.center)
         }
     }
 
