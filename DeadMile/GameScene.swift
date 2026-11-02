@@ -4,12 +4,13 @@ import UIKit
 @MainActor
 final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false }
-    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int }
+    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int; let hiddenKits:Int }
     var input = Input()
     var onFinish: ((Result)->Void)?
     var onHUD: ((Int, Int, CGFloat, CGFloat, CGFloat, Int)->Void)?
     var level = 0
     var area = 0
+    var explorationMode = false
     var audioEnabled = true
     var hapticsEnabled = true
     var vehicle = VehicleSpec.roster[0]
@@ -24,6 +25,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var fuelPickups = 0
     private var cashPickups = 0
     private var boostPickups = 0
+    private var hiddenKits = 0
+    private var lastKit: CGFloat = 0
     private var boost: CGFloat = 0
     private var distance: CGFloat = 0
     private var kills = 0
@@ -76,7 +79,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
 
     private func buildTerrain() {
         let biome=Biome.all[min(max(level,0),9)]
-        let length=biome.areaLengths[min(max(area,0),2)] * 10 + 900
+        let length: CGFloat = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10 + 900
         var points=[CGPoint(x:-500,y:65)]
         var x:CGFloat = -500
         while x < length {
@@ -181,6 +184,10 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         if body.velocity.dx > Tune.maxForwardSpeed { body.velocity.dx=Tune.maxForwardSpeed }
         if body.velocity.dx < -Tune.maxForwardSpeed*0.45 { body.velocity.dx = -Tune.maxForwardSpeed*0.45 }
         distance=max(distance,car.position.x-150)
+        if explorationMode && car.position.x-lastKit > 6500 {
+            lastKit = car.position.x
+            spawnPickup(at: CGPoint(x:car.position.x+CGFloat.random(in:700...1100),y:CGFloat.random(in:160...230)), kind:4)
+        }
         if car.position.x-lastPickup > 1900 {
             lastPickup = car.position.x
             spawnPickup(at: CGPoint(x:car.position.x+650,y:CGFloat.random(in:150...220)), kind:pickupIndex % 4)
@@ -297,8 +304,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     private func spawnPickup(at point:CGPoint,kind:Int) {
-        let colors:[UIColor]=[.systemGreen,.systemYellow,.systemCyan,.systemRed]
-        let node=SKShapeNode(circleOfRadius:15)
+        let colors:[UIColor]=[.systemGreen,.systemYellow,.systemCyan,.systemRed,.systemOrange]
+        let node: SKShapeNode = kind == 4 ? SKShapeNode(rectOf:CGSize(width:34,height:28),cornerRadius:4) : SKShapeNode(circleOfRadius:15)
         node.fillColor = colors[kind % colors.count]
         node.strokeColor = .white
         node.lineWidth = 3
@@ -336,6 +343,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             if kind==1 { cash += 75; cashPickups += 1 }
             if kind==2 { boost=min(100,boost+55); boostPickups += 1 }
             if kind==3 { health=min(maxHealth,health+35) }
+            if kind==4 { hiddenKits += 1; cash += 250; fuel=min(maxFuel,fuel+18); health=min(maxHealth,health+15); boost=min(100,boost+25) }
             FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
             emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent()
         }
@@ -363,14 +371,14 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         boost = 0; distance = 0
-        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
+        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; hiddenKits = 0; lastKit = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
     private func finish(destroyed:Bool) {
         guard !ended else { return }
         ended=true
-        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/1000)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups)
+        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/1000)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups,hiddenKits:hiddenKits)
         onFinish?(result)
         isPaused=true
     }
