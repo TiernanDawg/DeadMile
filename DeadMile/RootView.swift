@@ -153,8 +153,9 @@ struct RootView: View {
                 upgradeButton("ENGINE","engine", "Power and acceleration")
                 upgradeButton("FUEL","fuel", "Longer runs")
                 upgradeButton("ARMOR","armor", "Survive heavy impacts")
+                upgradeButton("WEAPON","weapon", "Mounted gun")
             }
-            Text("Recommended: \(progress.tier("engine") < 2 ? "ENGINE" : progress.tier("fuel") < 2 ? "FUEL TANK" : "ARMOR")").font(.system(size:11,weight:.bold)).foregroundStyle(.orange)
+            Text("Recommended: \(progress.tier("engine") < 2 ? "ENGINE" : progress.tier("fuel") < 2 ? "FUEL TANK" : progress.tier("armor") < 2 ? "ARMOR" : "WEAPON")").font(.system(size:11,weight:.bold)).foregroundStyle(.orange)
         }
     }
 
