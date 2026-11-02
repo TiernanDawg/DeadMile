@@ -16,7 +16,7 @@ GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it 
 
 - SpriteKit driving scene with dynamic chassis and pin-jointed wheels, seeded terrain profile, zombie contact handling, pickups, fuel, health, boost, and distance/kills payout.
 - Procedural Core Graphics vehicle and zombie sprites.
-- Ten biome definitions with three increasing area lengths each; area distances are scaled consistently, scenery loops through long runs, zombies pursue the vehicle with basic separation behavior, and supply pickups continue to spawn on longer routes.
+- Ten biome definitions with three increasing area lengths each; area distances are scaled consistently, scenery loops through long runs, zombies pursue the vehicle with basic separation behavior, destructible road hazards deal impact damage, and supply pickups continue to spawn on longer routes.
 - Ten vehicle definitions with working power/fuel/armor stats, per-vehicle upgrade tiers, local save migration for new mission counters, daily supply claim, settings, save-file sharing, achievements overview, and hidden debug panel.
 - SwiftUI menus and touch controls; 50 persistent cumulative contracts with one-time cash rewards unlock after the first region, while exploration unlocks after the final region. Distance cash is calculated from displayed meters and area-clear bonuses are paid once per area. No third-party art, ROMs, ads, IAP, network runtime, JIT, or paid entitlements.
 
