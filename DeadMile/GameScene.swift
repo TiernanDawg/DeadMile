@@ -2,7 +2,7 @@
 import UIKit
 
 @MainActor
-final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
+final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false }
     struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int }
     var input = Input()
@@ -36,7 +36,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private var lastPickup: CGFloat = 2300
     private var pickupIndex = 3
     private var zombies: [SKSpriteNode] = []
-    private var pickups: [SKSpriteNode] = []
+    private var pickups: [SKNode] = []
     private var hazards: [SKNode] = []
     private var lastHUD: TimeInterval = 0
     private var terrainBodies: [SKNode] = []
@@ -79,14 +79,13 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         let length=biome.areaLengths[min(max(area,0),2)] * 10 + 900
         var points=[CGPoint(x:-500,y:65)]
         var x:CGFloat = -500
-        var y:CGFloat = 65
         while x < length {
             randomSeed = randomSeed &* 6364136223846793005 &+ 1
             let r=CGFloat((randomSeed >> 33) % 1000)/1000
             let nextY=65 + sin(x/420)*32 + cos(x/910)*22 + (r-0.5)*18
             let nextX=x+CGFloat(110+Int(r*90))
             points.append(CGPoint(x:nextX,y:nextY))
-            x=nextX; y=nextY
+            x=nextX
         }
         let ground=SKShapeNode()
         let path=CGMutablePath()
