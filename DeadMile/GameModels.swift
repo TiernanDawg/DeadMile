@@ -49,23 +49,24 @@ struct MissionSpec: Identifiable {
 
     static let all: [MissionSpec] = (0..<50).map { index in
         let tier = index / 8 + 1
-        let templates: [(String, String, Metric, Int)] = [
-            ("THIN THE HORDE", "Eliminate infected", .kills, 8),
-            ("KEEP ROLLING", "Reach a best distance of", .distance, 1200),
-            ("FUEL RUNNER", "Collect fuel cans", .fuelPickups, 2),
-            ("SCAVENGER", "Collect supply cash drops", .cashPickups, 3),
-            ("FULL THROTTLE", "Collect boost cells", .boostPickups, 2),
-            ("ROAD VETERAN", "Complete runs", .runs, 5),
-            ("WASTELAND ECONOMY", "Earn cash from runs", .cashEarned, 1500),
-            ("ROUTE CLEARER", "Clear story areas", .areasCleared, 1)
+        let templates: [(String, String, Metric, Int, String)] = [
+            ("THIN THE HORDE", "Eliminate", .kills, 8, "infected"),
+            ("KEEP ROLLING", "Reach a best distance of", .distance, 1200, "meters"),
+            ("FUEL RUNNER", "Collect", .fuelPickups, 2, "fuel cans"),
+            ("SCAVENGER", "Collect", .cashPickups, 3, "cash drops"),
+            ("FULL THROTTLE", "Collect", .boostPickups, 2, "boost cells"),
+            ("ROAD VETERAN", "Complete", .runs, 5, "runs"),
+            ("WASTELAND ECONOMY", "Earn", .cashEarned, 1500, "dollars"),
+            ("ROUTE CLEARER", "Clear", .areasCleared, 1, "story areas")
         ]
         let template = templates[index % templates.count]
+        let target = template.3 * tier
         return MissionSpec(
             id: index,
             title: "\(template.0) · \(String(format: "%02d", index + 1))",
-            detail: "\(template.1) \(template.2 == .distance || template.2 == .cashEarned ? "" : "")",
+            detail: "\(template.1) \(target) \(template.4)",
             metric: template.2,
-            target: template.3 * tier,
+            target: target,
             reward: 100 + index * 30
         )
     }
