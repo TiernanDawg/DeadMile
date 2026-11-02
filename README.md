@@ -16,9 +16,9 @@ GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it 
 
 - SpriteKit driving scene with dynamic chassis and pin-jointed wheels, seeded terrain profile, zombie contact handling, pickups, fuel, health, boost, and distance/kills payout.
 - Procedural Core Graphics vehicle and zombie sprites.
-- Ten biome definitions with three increasing area lengths each; area distances are scaled consistently between terrain generation and progression checks, with fuel/cash/boost/repair pickups replenished along longer routes.
-- Ten vehicle definitions, upgrade tiers, local save, daily supply claim, settings, achievements overview, and hidden debug panel.
-- SwiftUI menus and touch controls; no third-party art, ROMs, ads, IAP, network runtime, JIT, or paid entitlements.
+- Ten biome definitions with three increasing area lengths each; area distances are scaled consistently, scenery loops through long runs, zombies pursue the vehicle with basic separation behavior, and supply pickups continue to spawn on longer routes.
+- Ten vehicle definitions with working power/fuel/armor stats, per-vehicle upgrade tiers, local save migration for new mission counters, daily supply claim, settings, save-file sharing, achievements overview, and hidden debug panel.
+- SwiftUI menus and touch controls; 50 persistent cumulative contracts with one-time cash rewards unlock after the first region, while exploration unlocks after the final region. Distance cash is calculated from displayed meters and area-clear bonuses are paid once per area. No third-party art, ROMs, ads, IAP, network runtime, JIT, or paid entitlements.
 
 ## Controls
 
@@ -26,4 +26,4 @@ Hold gas, reverse/brake, air tilt, and boost. Fuel pickups refill the tank; cash
 
 ## QA status and remaining work
 
-This commit is a playable engineering prototype, not a production-complete release. The current build has not yet been verified by a successful GitHub Actions run or on-device QA. The following brief requirements are not complete: all ten zombie archetypes and their unique AI, hazards/obstacles, vehicle destruction and detachable parts, mounted weapons, mission objective/star tracking, exploration mode and hidden kits, daily challenge validation, full biome music/engine loop, save import, and the requested accessibility/control customization. Do not treat the listed definitions or menu entries as proof those systems are implemented.
+This commit is a playable engineering prototype, not a production-complete release. The current build has not yet been verified by a successful GitHub Actions run or on-device QA. The following systems are still incomplete: ten distinct zombie archetypes with unique behaviors, hazards/obstacles, vehicle destruction and detachable parts, mounted weapons, star-grade mission scoring, an actual exploration mode and hidden kits, daily challenge validation, full biome music/engine audio, save import, and broader accessibility support. The current controls include adjustable size and a large-HUD option, but do not yet provide full remapping or Dynamic Type coverage. Do not treat definitions or unlock flags as proof those systems are implemented.
