@@ -5,6 +5,7 @@ struct GameView: View {
     let progress: PlayerProgress
     let level: Int
     let area: Int
+    let explorationMode: Bool
     let onExit: ()->Void
     @State private var distance=0
     @State private var speed=0
@@ -17,11 +18,11 @@ struct GameView: View {
     @State private var scene: DeadMileScene
     @Environment(\.scenePhase) private var scenePhase
 
-    init(progress:PlayerProgress,level:Int,area:Int,onExit:@escaping ()->Void) {
-        self.progress=progress; self.level=level; self.area=area; self.onExit=onExit
+    init(progress:PlayerProgress,level:Int,area:Int,explorationMode:Bool = false,onExit:@escaping ()->Void) {
+        self.progress=progress; self.level=level; self.area=area; self.explorationMode=explorationMode; self.onExit=onExit
         let s=DeadMileScene(size:CGSize(width:896,height:414))
         s.scaleMode = .resizeFill
-        s.level=level; s.area=area
+        s.level=level; s.area=area; s.explorationMode=explorationMode
         s.audioEnabled=progress.audioEnabled; s.hapticsEnabled=progress.hapticsEnabled
         s.vehicle=VehicleSpec.roster.first(where:{$0.id==progress.selectedVehicle}) ?? VehicleSpec.roster[0]
         s.upgradeTiers=["engine":progress.tier("engine"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor")]
@@ -72,7 +73,7 @@ struct GameView: View {
             scene.onHUD={ d,s,f,h,b,c in distance=d;speed=s;fuel=f;health=h;boost=b;cash=c }
             scene.onFinish={ r in
                 result=r
-                progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area,fuelPickups:r.fuelPickups,cashPickups:r.cashPickups,boostPickups:r.boostPickups))
+                progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area,fuelPickups:r.fuelPickups,cashPickups:r.cashPickups,boostPickups:r.boostPickups,hiddenKits:r.hiddenKits,isExploration:explorationMode))
             }
         }
         .onChange(of: scenePhase) { _, phase in
