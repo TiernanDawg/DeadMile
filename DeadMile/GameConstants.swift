@@ -8,7 +8,7 @@ enum Tune {
     static let engineForce: CGFloat = 1450
     static let reverseForce: CGFloat = 820
     static let airTorque: CGFloat = 5.8
-    static let fuelBurnPerSecond: CGFloat = 1.65
+    static let fuelBurnPerSecond: CGFloat = 0.48
     static let baseFuel: CGFloat = 100
     static let baseHealth: CGFloat = 100
     static let zombieSpawnDistance: CGFloat = 510
