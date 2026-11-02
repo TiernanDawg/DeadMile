@@ -135,6 +135,19 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         car.physicsBody?.contactTestBitMask=2 | 4 | 8
         car.physicsBody?.collisionBitMask=UInt32.max
         addChild(car); chassis=car
+        let damagePath = CGMutablePath()
+        damagePath.move(to:CGPoint(x:-42,y:12))
+        damagePath.addLine(to:CGPoint(x:-18,y:-2))
+        damagePath.addLine(to:CGPoint(x:2,y:10))
+        damagePath.addLine(to:CGPoint(x:22,y:-8))
+        damagePath.addLine(to:CGPoint(x:43,y:8))
+        let damage = SKShapeNode(path:damagePath)
+        damage.strokeColor = UIColor(red:0.75,green:0.12,blue:0.08,alpha:1)
+        damage.lineWidth = 3
+        damage.alpha = 0
+        damage.zPosition = 8
+        car.addChild(damage)
+        damageOverlay = damage
         if upgradeTiers["weapon",default:0] > 0 {
             let mount = SKShapeNode(rectOf:CGSize(width:34,height:10),cornerRadius:3)
             mount.fillColor = UIColor(white:0.22,alpha:1)
