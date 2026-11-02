@@ -31,10 +31,12 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private var lowSpeedTime: TimeInterval = 0
     private var ended = false
     private var lastSpawn: CGFloat = 0
+    private var lastHazard: CGFloat = 0
     private var lastPickup: CGFloat = 2300
     private var pickupIndex = 3
     private var zombies: [SKSpriteNode] = []
     private var pickups: [SKSpriteNode] = []
+    private var hazards: [SKNode] = []
     private var lastHUD: TimeInterval = 0
     private var terrainBodies: [SKNode] = []
     private var randomSeed: UInt64 = 0xDEAD_BEEF
@@ -121,7 +123,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         car.physicsBody?.angularDamping=0.42
         car.physicsBody?.friction=0.9
         car.physicsBody?.categoryBitMask=1
-        car.physicsBody?.contactTestBitMask=2 | 4
+        car.physicsBody?.contactTestBitMask=2 | 4 | 8
         car.physicsBody?.collisionBitMask=UInt32.max
         addChild(car); chassis=car
         for x in [-width*0.28,width*0.28] {
@@ -187,6 +189,12 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
             lastSpawn=car.position.x
             spawnZombie(at:CGPoint(x:car.position.x+CGFloat.random(in:360...650),y:CGFloat.random(in:140...235)))
         }
+        if car.position.x-lastHazard > 1450 && hazards.count < 8 {
+            lastHazard = car.position.x
+            let hazardX = car.position.x + CGFloat.random(in:520...820)
+            let roadY = 65 + sin(hazardX/420)*32 + cos(hazardX/910)*22
+            spawnHazard(at:CGPoint(x:hazardX,y:roadY+28))
+        }
         for zombie in zombies {
             let delta = car.position.x - zombie.position.x
             let direction: CGFloat = delta < 0 ? -1 : 1
@@ -200,6 +208,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         }
         for zombie in zombies where zombie.position.x < cameraNode.position.x-850 { zombie.removeFromParent() }
         zombies.removeAll { $0.parent == nil }
+        for hazard in hazards where hazard.position.x < cameraNode.position.x-850 { hazard.removeFromParent() }
+        hazards.removeAll { $0.parent == nil }
         cameraNode.position=CGPoint(x:max(400,car.position.x+Tune.cameraLookAhead),y:max(230,car.position.y+115))
         for node in children where node.name?.hasPrefix("parallax-") == true {
             let layer=CGFloat(Int(node.name.map { String($0.suffix(1)) } ?? "0") ?? 0)
@@ -234,6 +244,47 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         addChild(zombie); zombies.append(zombie)
     }
 
+    private func spawnHazard(at point:CGPoint) {
+        let kind = Int.random(in:0..<3)
+        let node: SKShapeNode
+        switch kind {
+        case 0:
+            node = SKShapeNode(rectOf:CGSize(width:54,height:38),cornerRadius:5)
+            node.fillColor = UIColor(red:0.38,green:0.22,blue:0.13,alpha:1)
+            node.strokeColor = UIColor(red:0.76,green:0.52,blue:0.29,alpha:1)
+            node.lineWidth = 4
+        case 1:
+            node = SKShapeNode(circleOfRadius:25)
+            node.fillColor = UIColor(white:0.16,alpha:1)
+            node.strokeColor = UIColor(white:0.48,alpha:1)
+            node.lineWidth = 6
+        default:
+            let path = CGMutablePath()
+            path.move(to:CGPoint(x:-34,y:-16))
+            path.addLine(to:CGPoint(x:-18,y:22))
+            path.addLine(to:CGPoint(x:-3,y:-16))
+            path.addLine(to:CGPoint(x:14,y:22))
+            path.addLine(to:CGPoint(x:31,y:-16))
+            path.closeSubpath()
+            node = SKShapeNode(path:path)
+            node.fillColor = UIColor(red:0.58,green:0.55,blue:0.48,alpha:1)
+            node.strokeColor = .white
+            node.lineWidth = 2
+        }
+        node.position = point
+        node.zPosition = 7
+        node.name = "hazard"
+        node.physicsBody = kind == 1
+            ? SKPhysicsBody(circleOfRadius:25)
+            : SKPhysicsBody(rectangleOf:CGSize(width:kind == 2 ? 64 : 54,height:kind == 2 ? 38 : 38))
+        node.physicsBody?.isDynamic = false
+        node.physicsBody?.categoryBitMask = 8
+        node.physicsBody?.contactTestBitMask = 1
+        node.physicsBody?.collisionBitMask = 1
+        addChild(node)
+        hazards.append(node)
+    }
+
     private func spawnPickup(at point:CGPoint,kind:Int) {
         let colors:[UIColor]=[.systemGreen,.systemYellow,.systemCyan,.systemRed]
         let node=SKShapeNode(circleOfRadius:15)
@@ -256,6 +307,15 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
             zombie.removeFromParent()
             zombies.removeAll { $0 === zombie }
             if impact < 18 { health=max(0,health-Tune.zombieContactDamage) }
+        }
+        if let hazard = (a?.name == "hazard" ? a : b?.name == "hazard" ? b : nil) {
+            hazard.name = "hazard-spent"
+            let damage = min(32, 12 + Int(contact.collisionImpulse / 180))
+            health = max(0, health - CGFloat(damage))
+            FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
+            emitDust(at:hazard.position,color:UIColor(red:0.72,green:0.42,blue:0.24,alpha:1))
+            hazard.removeFromParent()
+            hazards.removeAll { $0 === hazard }
         }
         if let pickup=(a?.name?.hasPrefix("pickup-")==true ? a : b?.name?.hasPrefix("pickup-")==true ? b : nil) {
             let kind=Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
@@ -283,13 +343,13 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         input = Input()
         cameraNode.position = .zero
         removeAllChildren()
-        zombies.removeAll(); pickups.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
         fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         boost = 0; distance = 0
-        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
+        kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
