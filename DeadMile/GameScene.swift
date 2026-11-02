@@ -27,6 +27,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
     private var lowSpeedTime: TimeInterval = 0
     private var ended = false
     private var lastSpawn: CGFloat = 0
+    private var lastPickup: CGFloat = 2300
+    private var pickupIndex = 3
     private var zombies: [SKSpriteNode] = []
     private var pickups: [SKSpriteNode] = []
     private var lastHUD: TimeInterval = 0
@@ -67,7 +69,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     private func buildTerrain() {
         let biome=Biome.all[min(max(level,0),9)]
-        let length=biome.areaLengths[min(max(area,0),2)] + 900
+        let length=biome.areaLengths[min(max(area,0),2)] * 10 + 900
         var points=[CGPoint(x:-500,y:65)]
         var x:CGFloat = -500
         var y:CGFloat = 65
@@ -171,6 +173,11 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         if body.velocity.dx > Tune.maxForwardSpeed { body.velocity.dx=Tune.maxForwardSpeed }
         if body.velocity.dx < -Tune.maxForwardSpeed*0.45 { body.velocity.dx = -Tune.maxForwardSpeed*0.45 }
         distance=max(distance,car.position.x-150)
+        if car.position.x-lastPickup > 1900 {
+            lastPickup = car.position.x
+            spawnPickup(at: CGPoint(x:car.position.x+650,y:CGFloat.random(in:150...220)), kind:pickupIndex % 4)
+            pickupIndex += 1
+        }
         if car.position.x-lastSpawn > Tune.zombieSpawnDistance && zombies.count<Tune.maxActiveZombies {
             lastSpawn=car.position.x
             spawnZombie(at:CGPoint(x:car.position.x+CGFloat.random(in:360...650),y:CGFloat.random(in:140...235)))
@@ -261,7 +268,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         health = Tune.baseHealth * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         boost = 0; distance = 0
-        kills = 0; cash = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; ended = false
+        kills = 0; cash = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
