@@ -6,7 +6,7 @@ final class FeedbackService {
     static let shared = FeedbackService()
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
-    private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
+    private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)
     private var isReady = false
 
     private init() {}
@@ -22,6 +22,7 @@ final class FeedbackService {
     }
 
     private func tone(frequency: Double, duration: Double, amplitude: Float) {
+        guard let format else { return }
         if !isReady {
             engine.attach(player)
             engine.connect(player, to: engine.mainMixerNode, format: format)
