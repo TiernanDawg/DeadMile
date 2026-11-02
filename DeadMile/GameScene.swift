@@ -114,7 +114,7 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         car.physicsBody?.angularDamping=0.42
         car.physicsBody?.friction=0.9
         car.physicsBody?.categoryBitMask=1
-        car.physicsBody?.contactTestBitMask=2
+        car.physicsBody?.contactTestBitMask=2 | 4
         car.physicsBody?.collisionBitMask=UInt32.max
         addChild(car); chassis=car
         for x in [-width*0.28,width*0.28] {
@@ -253,6 +253,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
 
     func resetRun() {
         isPaused = false
+        input = Input()
+        cameraNode.position = .zero
         removeAllChildren()
         zombies.removeAll(); pickups.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
