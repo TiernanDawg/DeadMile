@@ -443,6 +443,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         isPaused = false
         input = Input()
         cameraNode.position = .zero
+        for joint in wheelJoints { physicsWorld.remove(joint) }
         removeAllChildren()
         zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); wheelJoints.removeAll(); terrainBodies.removeAll()
         chassis = nil
