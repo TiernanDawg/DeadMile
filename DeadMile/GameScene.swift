@@ -3,7 +3,7 @@ import UIKit
 
 @MainActor
 final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
-    struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false }
+    struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false; var fire=false }
     struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int; let hiddenKits:Int }
     var input = Input()
     var onFinish: ((Result)->Void)?
@@ -39,6 +39,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var lastPickup: CGFloat = 2300
     private var pickupIndex = 3
     private var zombies: [SKSpriteNode] = []
+    private var projectiles: [SKNode] = []
+    private var lastShotTime: TimeInterval = 0
     private var pickups: [SKNode] = []
     private var hazards: [SKNode] = []
     private var lastHUD: TimeInterval = 0
@@ -175,6 +177,14 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         }
         if input.tiltLeft { body.applyTorque(Tune.airTorque*body.mass) }
         if input.tiltRight { body.applyTorque(-Tune.airTorque*body.mass) }
+        if input.fire && upgradeTiers["weapon",default:0] > 0 {
+            let tier = upgradeTiers["weapon",default:0]
+            let cooldown = max(0.16,0.48-Double(tier)*0.055)
+            if currentTime-lastShotTime >= cooldown {
+                lastShotTime = currentTime
+                fireWeapon(from:car.position,tier:tier)
+            }
+        }
         if input.boost && boost>0 && fuel>0 {
             body.applyForce(CGVector(dx:2200*CGFloat(vehicle.power),dy:0))
             boost=max(0,boost-dt*24)
@@ -217,6 +227,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             zombie.physicsBody?.velocity.dx = max(-60, min(60, direction * chaseSpeed + separation))
         }
         for zombie in zombies where zombie.position.x < cameraNode.position.x-850 { zombie.removeFromParent() }
+        for projectile in projectiles where projectile.position.x > cameraNode.position.x+1000 || projectile.position.x < cameraNode.position.x-1000 { projectile.removeFromParent() }
+        projectiles.removeAll { $0.parent == nil }
         zombies.removeAll { $0.parent == nil }
         for hazard in hazards where hazard.position.x < cameraNode.position.x-850 { hazard.removeFromParent() }
         hazards.removeAll { $0.parent == nil }
@@ -235,6 +247,27 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             onHUD?(Int(distance/10),Int(speed*0.22),maxFuel > 0 ? fuel / maxFuel * 100 : 0,maxHealth > 0 ? health / maxHealth * 100 : 0,boost,cash)
         }
         if car.position.y < -240 { health=0 }
+    }
+
+    private func fireWeapon(from point: CGPoint, tier: Int) {
+        let bullet = SKShapeNode(circleOfRadius: tier >= 4 ? 6 : 4)
+        bullet.fillColor = tier >= 3 ? .systemCyan : .systemYellow
+        bullet.strokeColor = .white
+        bullet.lineWidth = 1
+        bullet.position = CGPoint(x:point.x+88,y:point.y+13)
+        bullet.zPosition = 20
+        bullet.name = "bullet"
+        let body = SKPhysicsBody(circleOfRadius:tier >= 4 ? 6 : 4)
+        body.isDynamic = true
+        body.affectedByGravity = false
+        body.allowsRotation = false
+        body.categoryBitMask = 16
+        body.contactTestBitMask = 2
+        body.collisionBitMask = 0
+        bullet.physicsBody = body
+        addChild(bullet)
+        projectiles.append(bullet)
+        body.velocity = CGVector(dx:900+CGFloat(tier)*180,dy:0)
     }
 
     private func spawnZombie(at point:CGPoint) {
