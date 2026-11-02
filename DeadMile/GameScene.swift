@@ -357,7 +357,8 @@ final class DeadMileScene: SKScene, SKPhysicsContactDelegate {
         removeAllChildren()
         zombies.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); terrainBodies.removeAll()
         chassis = nil
-        fuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         boost = 0; distance = 0
