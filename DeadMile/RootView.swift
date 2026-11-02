@@ -83,16 +83,16 @@ DOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineText
             }.frame(height:165)
             Text(Biome.all[min(max(selectedLevel,0),9)].name).font(.system(size:14,weight:.black)).foregroundStyle(.orange)
             HStack(spacing:10) {
-                ForEach(0..<3,id:\\.self) { area in
-                    let key = "\\(selectedLevel)-\\(area-1)"
+                ForEach(0..<3,id:\.self) { area in
+                    let key = "\(selectedLevel)-\(area-1)"
                     let unlocked = area == 0 || progress.areaProgress[key,default:0] > 0
                     Button {
                         if unlocked { selectedArea=area;screen="run" }
                     } label: {
                         VStack(spacing:5) {
-                            Text("AREA \\(area+1)").font(.system(size:12,weight:.black))
-                            Text("\\(Int(Biome.all[selectedLevel].areaLengths[area])) m").font(.system(size:10,weight:.bold))
-                            Text(progress.areaProgress["\\(selectedLevel)-\\(area)",default:0] > 0 ? "CLEARED" : (unlocked ? "DRIVE" : "LOCKED")).font(.system(size:9,weight:.black))
+                            Text("AREA \(area+1)").font(.system(size:12,weight:.black))
+                            Text("\(Int(Biome.all[selectedLevel].areaLengths[area])) m").font(.system(size:10,weight:.bold))
+                            Text(progress.areaProgress["\(selectedLevel)-\(area)",default:0] > 0 ? "CLEARED" : (unlocked ? "DRIVE" : "LOCKED")).font(.system(size:9,weight:.black))
                         }.frame(maxWidth:.infinity).padding(.vertical,13).background(unlocked ? Color.orange.opacity(0.22) : Color.white.opacity(0.05),in:RoundedRectangle(cornerRadius:12))
                     }.disabled(!unlocked)
                 }
