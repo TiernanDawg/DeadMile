@@ -117,11 +117,8 @@ struct RootView: View {
             TabView(selection:$garageVehicle) {
                 ForEach(VehicleSpec.roster) { spec in
                     VStack(spacing:8) {
-                        if let cgImage = ArtFactory.vehicle(colorHex:spec.color,style:spec.id).cgImage() {
-                            Image(uiImage:UIImage(cgImage:cgImage)).resizable().scaledToFit().frame(maxWidth:360,maxHeight:115)
-                        } else {
-                            Image(systemName:"car.side").font(.system(size:72)).foregroundStyle(.orange)
-                        }
+                        Image(uiImage:UIImage(cgImage:ArtFactory.vehicle(colorHex:spec.color,style:spec.id).cgImage()))
+                            .resizable().scaledToFit().frame(maxWidth:360,maxHeight:115)
                         Text(spec.name).font(.system(size:21,weight:.black,design:.rounded))
                         HStack { statBar("POWER",spec.power/3.1);statBar("ARMOR",spec.armor/4.5);statBar("FUEL",spec.fuel/230) }
                         if progress.unlockedVehicles.contains(spec.id) {
