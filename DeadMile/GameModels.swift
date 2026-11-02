@@ -34,11 +34,13 @@ struct RunRecord: Codable {
     var fuelPickups: Int = 0
     var cashPickups: Int = 0
     var boostPickups: Int = 0
+    var hiddenKits: Int = 0
+    var isExploration: Bool = false
 }
 
 struct MissionSpec: Identifiable {
     enum Metric {
-        case kills, distance, fuelPickups, cashPickups, boostPickups, runs, cashEarned, areasCleared
+        case kills, distance, fuelPickups, cashPickups, boostPickups, hiddenKits, runs, cashEarned, areasCleared
     }
     let id: Int
     let title: String
@@ -57,7 +59,8 @@ struct MissionSpec: Identifiable {
             ("FULL THROTTLE", "Collect", .boostPickups, 2, "boost cells"),
             ("ROAD VETERAN", "Complete", .runs, 5, "runs"),
             ("WASTELAND ECONOMY", "Earn", .cashEarned, 1500, "dollars"),
-            ("ROUTE CLEARER", "Clear", .areasCleared, 1, "story areas")
+            ("ROUTE CLEARER", "Clear", .areasCleared, 1, "story areas"),
+            ("HIDDEN CACHE", "Find", .hiddenKits, 1, "survival kits")
         ]
         let template = templates[index % templates.count]
         let target = template.3 * tier
@@ -94,6 +97,7 @@ final class PlayerProgress {
     var totalFuelPickups = 0
     var totalCashPickups = 0
     var totalBoostPickups = 0
+    var totalHiddenKits = 0
     var lifetimeCashEarned = 0
     var areasCleared = 0
     var claimedMissions: Set<Int> = []
@@ -135,6 +139,7 @@ final class PlayerProgress {
         case .fuelPickups: return totalFuelPickups
         case .cashPickups: return totalCashPickups
         case .boostPickups: return totalBoostPickups
+        case .hiddenKits: return totalHiddenKits
         case .runs: return runs
         case .cashEarned: return lifetimeCashEarned
         case .areasCleared: return areasCleared
@@ -147,6 +152,7 @@ final class PlayerProgress {
         totalFuelPickups += record.fuelPickups
         totalCashPickups += record.cashPickups
         totalBoostPickups += record.boostPickups
+        totalHiddenKits += record.hiddenKits
         lifetimeCashEarned += record.earned
         bestDistance = max(bestDistance, record.distance)
         cash += record.earned
@@ -209,6 +215,7 @@ final class PlayerProgress {
         totalFuelPickups = 0
         totalCashPickups = 0
         totalBoostPickups = 0
+        totalHiddenKits = 0
         lifetimeCashEarned = 0
         areasCleared = 0
         claimedMissions = []
@@ -262,6 +269,7 @@ private struct SavePayload: Codable {
     var totalFuelPickups: Int?
     var totalCashPickups: Int?
     var totalBoostPickups: Int?
+    var totalHiddenKits: Int?
     var lifetimeCashEarned: Int?
     var areasCleared: Int?
     var claimedMissions: [Int]?
@@ -286,6 +294,7 @@ private struct SavePayload: Codable {
         totalFuelPickups = p.totalFuelPickups
         totalCashPickups = p.totalCashPickups
         totalBoostPickups = p.totalBoostPickups
+        totalHiddenKits = p.totalHiddenKits
         lifetimeCashEarned = p.lifetimeCashEarned
         areasCleared = p.areasCleared
         claimedMissions = Array(p.claimedMissions)
@@ -312,6 +321,7 @@ private struct SavePayload: Codable {
         p.totalFuelPickups = totalFuelPickups ?? 0
         p.totalCashPickups = totalCashPickups ?? 0
         p.totalBoostPickups = totalBoostPickups ?? 0
+        p.totalHiddenKits = totalHiddenKits ?? 0
         p.lifetimeCashEarned = lifetimeCashEarned ?? 0
         p.areasCleared = areasCleared ?? 0
         p.claimedMissions = Set(claimedMissions ?? [])
