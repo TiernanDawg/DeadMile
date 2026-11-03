@@ -1,4 +1,5 @@
 @preconcurrency import SpriteKit
+@preconcurrency import GameController
 import UIKit
 
 @MainActor
@@ -209,19 +210,27 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let dt=min(max(currentTime-(elapsed == 0 ? currentTime : elapsed),0),1.0/20.0)
         elapsed=currentTime
         let speed=abs(body.velocity.dx)
+        let pad = GCController.controllers().first?.extendedGamepad
+        let gasPressed = input.gas || (pad?.rightTrigger.value ?? 0) > 0.15
+        let brakePressed = input.brake || (pad?.leftTrigger.value ?? 0) > 0.15
+        let stickX = pad?.leftThumbstick.xAxis.value ?? 0
+        let tiltLeftPressed = input.tiltLeft || stickX < -0.25
+        let tiltRightPressed = input.tiltRight || stickX > 0.25
+        let boostPressed = input.boost || (pad?.buttonB.isPressed ?? false)
+        let firePressed = input.fire || (pad?.buttonA.isPressed ?? false)
         FeedbackService.shared.updateEngine(speed:speed,audio:audioEnabled,biome:level)
         let engine=CGFloat(vehicle.power)*(1+CGFloat(upgradeTiers["engine",default:0])*0.18)
-        if input.gas && fuel>0 {
+        if gasPressed && fuel>0 {
             body.applyForce(CGVector(dx:Tune.engineForce*engine,dy:0))
             fuel=max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.08)*dt)
         }
-        if input.brake {
+        if brakePressed {
             if speed>35 { body.applyForce(CGVector(dx:-Tune.reverseForce*CGFloat(vehicle.mass),dy:0)) }
             else if fuel>0 { body.applyForce(CGVector(dx:-Tune.reverseForce*0.55,dy:0)); fuel=max(0,fuel-Tune.fuelBurnPerSecond*dt) }
         }
-        if input.tiltLeft { body.applyTorque(Tune.airTorque*body.mass) }
-        if input.tiltRight { body.applyTorque(-Tune.airTorque*body.mass) }
-        if input.fire && upgradeTiers["weapon",default:0] > 0 {
+        if tiltLeftPressed { body.applyTorque(Tune.airTorque*body.mass) }
+        if tiltRightPressed { body.applyTorque(-Tune.airTorque*body.mass) }
+        if firePressed && upgradeTiers["weapon",default:0] > 0 {
             let tier = upgradeTiers["weapon",default:0]
             let cooldown = max(0.16,0.48-Double(tier)*0.055)
             if currentTime-lastShotTime >= cooldown {
@@ -229,7 +238,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 fireWeapon(from:car.position,tier:tier)
             }
         }
-        if input.boost && boost>0 && fuel>0 {
+        if boostPressed && boost>0 && fuel>0 {
             body.applyForce(CGVector(dx:2200*CGFloat(vehicle.power),dy:0))
             boost=max(0,boost-dt*24)
             fuel=max(0,fuel-dt*2)
