@@ -252,6 +252,7 @@ struct RootView: View {
             instruction("BOOST","Boost charges are collected on the road. Spend them for a burst.")
             instruction("WEAPON","Buy a mounted weapon upgrade, then hold FIRE to clear infected ahead.")
             instruction("FUEL","Fuel cans refill your tank. When empty, keep rolling to stretch your run.")
+            instruction("GAMEPAD","Triggers accelerate/brake, left stick tilts, B boosts, and A fires when a weapon is installed.")
             instruction("EXPLORATION","After clearing the final region, free roam for hidden survival caches.")
         }.padding(.horizontal,40).frame(maxWidth:600)
     }
