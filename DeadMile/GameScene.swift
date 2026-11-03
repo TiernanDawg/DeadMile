@@ -73,9 +73,10 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         buildBackdrop()
         buildTerrain()
         buildVehicle()
-        spawnPickup(at: CGPoint(x:700,y:160), kind: 0)
-        spawnPickup(at: CGPoint(x:1450,y:210), kind: 1)
-        spawnPickup(at: CGPoint(x:2300,y:170), kind: 2)
+        cameraNode.position = CGPoint(x:150 + Tune.cameraLookAhead,y:(chassis?.position.y ?? 170) + 42)
+        spawnPickup(at: CGPoint(x:700,y:roadSurfaceY(at:700)+34), kind: 0)
+        spawnPickup(at: CGPoint(x:1450,y:roadSurfaceY(at:1450)+34), kind: 1)
+        spawnPickup(at: CGPoint(x:2300,y:roadSurfaceY(at:2300)+34), kind: 2)
     }
 
     private func buildBackdrop() {
