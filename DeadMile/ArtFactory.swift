@@ -2,7 +2,7 @@ import UIKit
 import SpriteKit
 
 enum ArtFactory {
-    static func vehicle(colorHex: String, scale: CGFloat = 1, style: Int = 0) -> SKTexture {
+    static func vehicle(colorHex: String, scale: CGFloat = 1, style: Int = 0, includeWheels: Bool = true) -> SKTexture {
         let size = CGSize(width: 260 * scale, height: 112 * scale)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
@@ -174,14 +174,16 @@ enum ArtFactory {
                 c.addLine(to:CGPoint(x:226*scale,y:32*scale))
                 c.strokePath()
             }
-            let wheelCenters: [CGFloat] = style == 4 ? [40,112,190,235] : (style == 7 ? [42,112,174,218] : [62,194])
-            for x in wheelCenters {
+            if includeWheels {
+                let wheelCenters: [CGFloat] = style == 4 ? [40,112,190,235] : (style == 7 ? [42,112,174,218] : [62,194])
+                for x in wheelCenters {
                 let wheel = CGRect(x:CGFloat(x)*scale,y:3*scale,width:47*scale,height:47*scale)
                 UIColor(white:0.08,alpha:1).setFill(); UIBezierPath(ovalIn:wheel).fill()
                 UIColor(white:0.48,alpha:1).setStroke()
                 let rim=UIBezierPath(ovalIn:wheel.insetBy(dx:8*scale,dy:8*scale)); rim.lineWidth=4*scale; rim.stroke()
                 UIColor(white:0.68,alpha:1).setFill()
                 UIBezierPath(ovalIn:wheel.insetBy(dx:19*scale,dy:19*scale)).fill()
+                }
             }
             UIColor(red:1,green:0.83,blue:0.45,alpha:1).setFill()
             UIBezierPath(roundedRect:CGRect(x:232*scale,y:39*scale,width:12*scale,height:10*scale),cornerRadius:3*scale).fill()
