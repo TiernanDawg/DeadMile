@@ -353,6 +353,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         zombie.physicsBody?.mass=masses[variant] * scale
         let metadata=NSMutableDictionary()
         metadata["variant"] = variant
+        metadata["hp"] = variant == 8 ? 3 : (variant == 6 ? 2 : 1)
         zombie.userData=metadata
         zombie.physicsBody?.linearDamping=0.7
         zombie.physicsBody?.angularDamping=0.8
@@ -421,19 +422,30 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let a=contact.bodyA.node, b=contact.bodyB.node
         if let zombie=(a?.name=="zombie" ? a : b?.name=="zombie" ? b : nil) {
             let bullet = a?.name == "bullet" ? a : (b?.name == "bullet" ? b : nil)
-            let impact=abs(contact.collisionImpulse)
-            kills += 1
-            FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
-            let reward=Tune.hitCash + Int(min(impact/80,20))
-            cash += reward
-            emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
-            zombie.removeFromParent()
-            zombies.removeAll { $0 === zombie }
-            if let bullet {
-                bullet.removeFromParent()
+            let variant = zombie.userData?["variant"] as? Int ?? 0
+            let hp = zombie.userData?["hp"] as? Int ?? 1
+            if bullet != nil && hp > 1 {
+                zombie.userData?["hp"] = hp - 1
+                zombie.color = .red
+                zombie.colorBlendFactor = 0.65
+                bullet?.removeFromParent()
                 projectiles.removeAll { $0 === bullet }
-            } else if impact < 18 {
-                health=max(0,health-Tune.zombieContactDamage)
+                emitDust(at:zombie.position,color:.orange)
+            } else {
+                let impact=abs(contact.collisionImpulse)
+                kills += 1
+                FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
+                cash += Tune.hitCash + Int(min(impact/80,20))
+                emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
+                zombie.removeFromParent()
+                zombies.removeAll { $0 === zombie }
+                if let bullet {
+                    bullet.removeFromParent()
+                    projectiles.removeAll { $0 === bullet }
+                } else if impact < 18 {
+                    let multiplier: CGFloat = variant == 6 ? 2.0 : (variant == 7 ? 1.5 : 1.0)
+                    health=max(0,health-Tune.zombieContactDamage*multiplier)
+                }
             }
         }
         if let hazard = (a?.name == "hazard" ? a : b?.name == "hazard" ? b : nil) {
