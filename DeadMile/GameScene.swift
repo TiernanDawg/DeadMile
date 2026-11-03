@@ -286,7 +286,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
-        let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id),size:CGSize(width:width,height:65))
+        let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id,includeWheels:false),size:CGSize(width:width,height:65))
         car.position=CGPoint(x:150,y:roadSurfaceY(at:150)+42); car.zPosition=10
         car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
         car.physicsBody?.mass=CGFloat(vehicle.mass*4.2)
