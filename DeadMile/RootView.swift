@@ -559,8 +559,14 @@ private struct MenuBackdrop: View {
                 let building = CGRect(x:x,y:size.height*0.69-height,width:width,height:height)
                 context.fill(Path(building),with:.color(Color(red:0.065,green:0.07,blue:0.08).opacity(0.92)))
                 for row in 0..<3 {
-                    let window = CGRect(x:building.minX+width*0.24,y:building.minY+height*CGFloat(0.20+row*0.22),width:width*0.16,height:3)
-                    context.fill(Path(window),with:.color(Color.orange.opacity(0.32)))
+                    let windowX: CGFloat = building.minX + width * 0.24
+                    let rowFactor: CGFloat = 0.20 + CGFloat(row) * 0.22
+                    let windowY: CGFloat = building.minY + height * rowFactor
+                    let windowWidth: CGFloat = width * 0.16
+                    let windowRect = CGRect(x:windowX,y:windowY,width:windowWidth,height:3)
+                    let windowPath = Path(windowRect)
+                    let windowColor = Color.orange.opacity(0.32)
+                    context.fill(windowPath,with:.color(windowColor))
                 }
             }
 
