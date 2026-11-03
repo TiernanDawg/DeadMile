@@ -181,39 +181,90 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         }
     }
 
+    private func roadBaseY(at x: CGFloat) -> CGFloat {
+        65 + sin(x/420)*32 + cos(x/910)*22 + sin(x/137)*4
+    }
+
+    private func roadSurfaceY(at x: CGFloat) -> CGFloat {
+        roadBaseY(at:x) + 18
+    }
+
     private func buildTerrain() {
-        let biome=Biome.all[min(max(level,0),9)]
-        let length: CGFloat = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10 + 900
-        var points=[CGPoint(x:-500,y:65)]
-        var x:CGFloat = -500
-        while x < length {
-            randomSeed = randomSeed &* 6364136223846793005 &+ 1
-            let r=CGFloat((randomSeed >> 33) % 1000)/1000
-            let nextY=65 + sin(x/420)*32 + cos(x/910)*22 + (r-0.5)*18
-            let nextX=x+CGFloat(110+Int(r*90))
-            points.append(CGPoint(x:nextX,y:nextY))
-            x=nextX
+        let biome = Biome.all[min(max(level,0),9)]
+        let startX: CGFloat = -1400
+        let endX: CGFloat = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10 + 900
+        let step: CGFloat = 80
+        let centerPath = CGMutablePath()
+        let surfacePath = CGMutablePath()
+        let fillPath = CGMutablePath()
+        var first = true
+
+        for x in stride(from:startX,through:endX+step,by:step) {
+            let base = roadBaseY(at:x)
+            let center = CGPoint(x:x,y:base)
+            let surface = CGPoint(x:x,y:base+18)
+            if first {
+                centerPath.move(to:center)
+                surfacePath.move(to:surface)
+                fillPath.move(to:CGPoint(x:startX,y:-700))
+                fillPath.addLine(to:surface)
+                first = false
+            } else {
+                centerPath.addLine(to:center)
+                surfacePath.addLine(to:surface)
+                fillPath.addLine(to:surface)
+            }
         }
-        let ground=SKShapeNode()
-        let path=CGMutablePath()
-        path.move(to:points[0])
-        for p in points.dropFirst() { path.addLine(to:p) }
-        ground.path=path
-        ground.strokeColor=UIColor(red:biome.accent.0,green:biome.accent.1,blue:biome.accent.2,alpha:1)
-        ground.lineWidth=8
-        ground.zPosition=1
-        ground.physicsBody=SKPhysicsBody(edgeChainFrom:path)
-        ground.physicsBody?.friction=1.15
-        ground.physicsBody?.restitution=0.05
-        addChild(ground)
-        terrainBodies.append(ground)
-        let fill=SKShapeNode()
-        let fillPath=CGMutablePath()
-        fillPath.move(to:CGPoint(x:-500,y:-500)); fillPath.addLine(to:points[0])
-        for p in points.dropFirst() { fillPath.addLine(to:p) }
-        fillPath.addLine(to:CGPoint(x:length+1000,y:-500)); fillPath.closeSubpath()
-        fill.path=fillPath; fill.fillColor=UIColor(red:biome.ground.0,green:biome.ground.1,blue:biome.ground.2,alpha:1)
-        fill.strokeColor = .clear; fill.zPosition=0; addChild(fill)
+        fillPath.addLine(to:CGPoint(x:endX+step,y:-700))
+        fillPath.closeSubpath()
+
+        let earth = SKShapeNode(path:fillPath)
+        earth.fillColor = UIColor(red:biome.ground.0*0.70,green:biome.ground.1*0.72,blue:biome.ground.2*0.76,alpha:1)
+        earth.strokeColor = .clear
+        earth.zPosition = 0
+        addChild(earth)
+
+        let asphalt = SKShapeNode(path:centerPath)
+        asphalt.strokeColor = UIColor(red:0.105,green:0.12,blue:0.13,alpha:1)
+        asphalt.lineWidth = 42
+        asphalt.lineCap = .round
+        asphalt.lineJoin = .round
+        asphalt.zPosition = 2
+        addChild(asphalt)
+
+        let edge = SKShapeNode(path:surfacePath)
+        edge.strokeColor = UIColor(red:biome.accent.0,green:biome.accent.1,blue:biome.accent.2,alpha:0.95)
+        edge.lineWidth = 4
+        edge.zPosition = 3
+        addChild(edge)
+
+        let decorationEnd = min(endX,CGFloat(48000))
+        for x in stride(from:CGFloat(0),through:decorationEnd,by:280) {
+            let marker = SKShapeNode(rectOf:CGSize(width:48,height:4),cornerRadius:2)
+            marker.fillColor = UIColor(red:0.92,green:0.78,blue:0.47,alpha:0.85)
+            marker.strokeColor = .clear
+            marker.position = CGPoint(x:x,y:roadBaseY(at:x)+5)
+            marker.zRotation = atan2(roadBaseY(at:x+20)-roadBaseY(at:x-20),40)
+            marker.zPosition = 3
+            addChild(marker)
+        }
+
+        for x in stride(from:CGFloat(-300),through:decorationEnd,by:205) {
+            let size = CGFloat(8 + (Int(abs(x/205)) % 4)*4)
+            let pebble = SKShapeNode(ellipseOf:CGSize(width:size,height:5))
+            pebble.fillColor = UIColor(white:0.11,alpha:0.52)
+            pebble.strokeColor = .clear
+            pebble.position = CGPoint(x:x,y:roadBaseY(at:x)-39)
+            pebble.zPosition = 1
+            addChild(pebble)
+        }
+
+        let physicsGround = SKNode()
+        physicsGround.physicsBody = SKPhysicsBody(edgeChainFrom:surfacePath)
+        physicsGround.physicsBody?.friction = 1.7
+        physicsGround.physicsBody?.restitution = 0.015
+        addChild(physicsGround)
+        terrainBodies.append(physicsGround)
     }
 
     private func buildVehicle() {
