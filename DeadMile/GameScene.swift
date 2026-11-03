@@ -18,7 +18,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     var upgradeTiers: [String:Int] = [:]
     private var chassis: SKSpriteNode?
     private var wheels: [SKSpriteNode] = []
-    private var wheelJoints: [SKPhysicsJoint] = []
+    private var wheelJoints: [SKPhysicsJointPin] = []
     private var damageOverlay: SKShapeNode?
     private var hoodPanel: SKShapeNode?
     private var debris: [SKNode] = []
@@ -71,17 +71,112 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private func buildBackdrop() {
         let biome = Biome.all[min(max(level,0),9)]
         backgroundColor = UIColor(red:biome.sky.0,green:biome.sky.1,blue:biome.sky.2,alpha:1)
+        let tileWidth: CGFloat = 2200
+        let glowColor = UIColor(red:min(1,biome.accent.0*1.12),green:min(1,biome.accent.1*0.88),blue:min(1,biome.accent.2*0.72),alpha:0.14)
+
+        for tile in -1...5 {
+            let glow = SKShapeNode(circleOfRadius:245)
+            glow.fillColor = glowColor
+            glow.strokeColor = .clear
+            glow.position = CGPoint(x:CGFloat(tile)*tileWidth+1650,y:350)
+            glow.zPosition = -38
+            addChild(glow)
+        }
+
+        let distant = UIColor(red:biome.ground.0*0.48,green:biome.ground.1*0.50,blue:biome.ground.2*0.56,alpha:1)
+        let mid = UIColor(red:biome.ground.0*0.34,green:biome.ground.1*0.36,blue:biome.ground.2*0.42,alpha:1)
+        let near = UIColor(red:biome.ground.0*0.19,green:biome.ground.1*0.22,blue:biome.ground.2*0.26,alpha:1)
+
         for layer in 0..<3 {
-            let group=SKNode(); group.zPosition = CGFloat(-30+layer*5)
-            for i in 0..<14 {
-                let w=CGFloat(90+(i*37+layer*19)%150), h=CGFloat(100+(i*71+layer*31)%260)
-                let shape=SKShapeNode(rectOf:CGSize(width:w,height:h),cornerRadius:CGFloat(layer*3+2))
-                shape.fillColor=UIColor(red:biome.ground.0,green:biome.ground.1,blue:biome.ground.2,alpha:0.20+CGFloat(layer)*0.08)
-                shape.strokeColor = .clear
-                shape.position=CGPoint(x:CGFloat(i)*190+CGFloat(layer)*60,y:CGFloat(layer*55)+h/2+80)
-                group.addChild(shape)
+            let group = SKNode()
+            group.zPosition = CGFloat(-32 + layer*5)
+            for tile in -1...5 {
+                let origin = CGFloat(tile)*tileWidth
+                if layer == 0 {
+                    let ridge = CGMutablePath()
+                    ridge.move(to:CGPoint(x:origin,y:-80))
+                    ridge.addLine(to:CGPoint(x:origin,y:195))
+                    for index in 0...22 {
+                        let x = origin + CGFloat(index)*100
+                        let peak = 265 + sin(CGFloat(index)*1.37 + CGFloat(level))*72 + cos(CGFloat(index)*0.61)*34
+                        ridge.addLine(to:CGPoint(x:x,y:peak))
+                    }
+                    ridge.addLine(to:CGPoint(x:origin+tileWidth,y:165))
+                    ridge.addLine(to:CGPoint(x:origin+tileWidth,y:-80))
+                    ridge.closeSubpath()
+                    let mountains = SKShapeNode(path:ridge)
+                    mountains.fillColor = distant
+                    mountains.strokeColor = .clear
+                    group.addChild(mountains)
+                    for index in 0..<4 {
+                        let mesa = SKShapeNode(rectOf:CGSize(width:CGFloat(110+index*23),height:CGFloat(100+index*16)),cornerRadius:12)
+                        mesa.fillColor = distant.withAlphaComponent(0.8)
+                        mesa.strokeColor = .clear
+                        mesa.position = CGPoint(x:origin+CGFloat(index)*545+280,y:130+CGFloat(index%2)*35)
+                        group.addChild(mesa)
+                    }
+                } else if layer == 1 {
+                    for index in 0..<13 {
+                        let x = origin + CGFloat(index)*174 + CGFloat((index*37+level*19)%54)
+                        let width = CGFloat(62+(index*29+level*13)%76)
+                        let height = CGFloat(130+(index*53+level*31)%175)
+                        let building = SKShapeNode(rectOf:CGSize(width:width,height:height),cornerRadius:4)
+                        building.fillColor = mid
+                        building.strokeColor = UIColor(white:0.07,alpha:0.28)
+                        building.lineWidth = 3
+                        building.position = CGPoint(x:x,y:90+height/2)
+                        group.addChild(building)
+                        let roof = SKShapeNode(rectOf:CGSize(width:width*0.68,height:8),cornerRadius:2)
+                        roof.fillColor = near.withAlphaComponent(0.95)
+                        roof.strokeColor = .clear
+                        roof.position = CGPoint(x:x,y:90+height+5)
+                        group.addChild(roof)
+                        for row in 0..<max(2,Int(height/42)) {
+                            for column in 0..<2 {
+                                let window = SKShapeNode(rectOf:CGSize(width:8,height:13),cornerRadius:2)
+                                window.fillColor = UIColor(red:biome.accent.0,green:biome.accent.1,blue:biome.accent.2,alpha:0.48)
+                                window.strokeColor = .clear
+                                window.position = CGPoint(x:x+(column == 0 ? -width*0.22 : width*0.22),y:110+CGFloat(row)*37)
+                                group.addChild(window)
+                            }
+                        }
+                    }
+                } else {
+                    for index in 0..<5 {
+                        let x = origin + CGFloat(index)*480 + CGFloat((index*71+level*43)%110)
+                        let trunk = SKShapeNode(rectOf:CGSize(width:10,height:120),cornerRadius:3)
+                        trunk.fillColor = near
+                        trunk.strokeColor = .clear
+                        trunk.position = CGPoint(x:x,y:130)
+                        group.addChild(trunk)
+                        let branches = SKShapeNode()
+                        let path = CGMutablePath()
+                        path.move(to:CGPoint(x:x,y:165))
+                        path.addLine(to:CGPoint(x:x-42,y:230))
+                        path.move(to:CGPoint(x:x,y:185))
+                        path.addLine(to:CGPoint(x:x+53,y:252))
+                        path.move(to:CGPoint(x:x-20,y:207))
+                        path.addLine(to:CGPoint(x:x-65,y:218))
+                        branches.path = path
+                        branches.strokeColor = near
+                        branches.lineWidth = 8
+                        branches.lineCap = .round
+                        group.addChild(branches)
+                        let poleX = x+170
+                        let pole = SKShapeNode(rectOf:CGSize(width:7,height:205),cornerRadius:2)
+                        pole.fillColor = near
+                        pole.strokeColor = .clear
+                        pole.position = CGPoint(x:poleX,y:170)
+                        group.addChild(pole)
+                        let arm = SKShapeNode(rectOf:CGSize(width:100,height:7),cornerRadius:2)
+                        arm.fillColor = near
+                        arm.strokeColor = .clear
+                        arm.position = CGPoint(x:poleX,y:250)
+                        group.addChild(arm)
+                    }
+                }
             }
-            group.name="parallax-\(layer)"
+            group.name = "parallax-\(layer)"
             addChild(group)
         }
     }
