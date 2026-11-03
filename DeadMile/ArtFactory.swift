@@ -7,6 +7,8 @@ enum ArtFactory {
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
             let c = ctx.cgContext
+            c.translateBy(x:0,y:size.height)
+            c.scaleBy(x:1,y:-1)
             let body = UIBezierPath()
             body.move(to: CGPoint(x: 16*scale,y: 26*scale))
             body.addLine(to: CGPoint(x: 28*scale,y: 62*scale))
@@ -64,6 +66,28 @@ enum ArtFactory {
                 plate.fill()
                 UIColor(white:0.72,alpha:1).setStroke(); plate.lineWidth=2*scale; plate.stroke()
             }
+
+            c.setStrokeColor(UIColor.black.withAlphaComponent(0.65).cgColor)
+            c.setLineWidth(2*scale)
+            c.move(to:CGPoint(x:158*scale,y:36*scale))
+            c.addLine(to:CGPoint(x:158*scale,y:75*scale))
+            c.strokePath()
+            let doorHandle=UIBezierPath(roundedRect:CGRect(x:142*scale,y:45*scale,width:12*scale,height:3*scale),cornerRadius:1.5*scale)
+            UIColor(white:0.84,alpha:0.8).setFill(); doorHandle.fill()
+            for x in [40,52,170,182] {
+                UIColor(white:0.78,alpha:0.8).setFill()
+                UIBezierPath(ovalIn:CGRect(x:CGFloat(x)*scale,y:52*scale,width:4*scale,height:4*scale)).fill()
+            }
+            c.setStrokeColor(UIColor(white:0.68,alpha:0.9).cgColor)
+            c.setLineWidth(4*scale)
+            c.move(to:CGPoint(x:23*scale,y:20*scale))
+            c.addLine(to:CGPoint(x:235*scale,y:20*scale))
+            c.strokePath()
+            UIColor(red:1,green:0.78,blue:0.3,alpha:1).setFill()
+            UIBezierPath(roundedRect:CGRect(x:224*scale,y:36*scale,width:18*scale,height:12*scale),cornerRadius:3*scale).fill()
+            UIColor(red:0.72,green:0.12,blue:0.08,alpha:1).setFill()
+            UIBezierPath(roundedRect:CGRect(x:17*scale,y:38*scale,width:14*scale,height:11*scale),cornerRadius:2*scale).fill()
+
             for x in [62,194] {
                 let wheel = CGRect(x:CGFloat(x)*scale,y:3*scale,width:47*scale,height:47*scale)
                 UIColor(white:0.08,alpha:1).setFill(); UIBezierPath(ovalIn:wheel).fill()
