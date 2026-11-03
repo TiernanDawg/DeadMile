@@ -19,7 +19,8 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors:[Color(red:0.07,green:0.08,blue:0.1),Color(red:0.19,green:0.12,blue:0.1)],startPoint:.topLeading,endPoint:.bottomTrailing).ignoresSafeArea()
+            MenuBackdrop().ignoresSafeArea()
+            LinearGradient(colors:[.black.opacity(0.18),.black.opacity(0.48)],startPoint:.top,endPoint:.bottom).ignoresSafeArea()
             if screen == "run" {
                 GameView(progress:progress,level:selectedLevel,area:selectedArea,explorationMode:explorationMode,onExit:{screen="garage"})
             } else {
@@ -352,13 +353,37 @@ struct RootView: View {
         Button { screen=target } label: { VStack(spacing:4){Image(systemName:icon).font(.system(size:17,weight:.bold));Text(title).font(.system(size:8,weight:.black))}.foregroundStyle(screen==target ? .orange : .white.opacity(0.55)).frame(maxWidth:.infinity) }
     }
     private func upgradeButton(_ title:String,_ key:String,_ detail:String)->some View {
-        let tier=progress.tier(key), cost=progress.upgradeCost(key)
+        let tier = progress.tier(key)
+        let cost = progress.upgradeCost(key)
+        let canBuy = tier < 5 && progress.cash >= cost && progress.unlockedVehicles.contains(progress.selectedVehicle)
         return Button {
-            if progress.unlockedVehicles.contains(progress.selectedVehicle) { _=progress.buyUpgrade(key) }
-        } label:{
-            VStack(spacing:4) { Text(title).font(.system(size:11,weight:.black));Text("LV \(tier)/5").font(.system(size:10,weight:.bold));Text(tier<5 ? "$\(cost)" : "MAX").font(.system(size:11,weight:.heavy)).foregroundStyle(.yellow);Text(detail).font(.system(size:8)).foregroundStyle(.white.opacity(0.55)).lineLimit(1) }
-                .frame(maxWidth:.infinity).padding(9).background(.white.opacity(0.07),in:RoundedRectangle(cornerRadius:10))
-        }.disabled(tier>=5 || progress.cash<cost || !progress.unlockedVehicles.contains(progress.selectedVehicle))
+            _ = progress.buyUpgrade(key)
+        } label: {
+            VStack(alignment:.leading,spacing:5) {
+                HStack {
+                    Text(title).font(.system(size:10,weight:.black,design:.rounded))
+                    Spacer(minLength:2)
+                    Text("LV \(tier)/5").font(.system(size:8,weight:.bold,design:.monospaced)).foregroundStyle(.orange)
+                }
+                ProgressView(value:Double(tier),total:5).tint(.orange)
+                HStack {
+                    Text(tier < 5 ? "$\(cost)" : "MAX LEVEL")
+                        .font(.system(size:12,weight:.black,design:.rounded))
+                        .foregroundStyle(canBuy ? .yellow : .white.opacity(0.6))
+                    Spacer(minLength:0)
+                    Image(systemName:tier < 5 ? "plus.circle.fill" : "checkmark.seal.fill")
+                        .font(.system(size:11,weight:.bold))
+                        .foregroundStyle(canBuy ? .orange : .white.opacity(0.4))
+                }
+                Text(detail).font(.system(size:8,weight:.medium)).foregroundStyle(.white.opacity(0.58)).lineLimit(1)
+            }
+            .padding(9)
+            .frame(maxWidth:.infinity,minHeight:67,alignment:.leading)
+            .background(LinearGradient(colors:[Color.white.opacity(0.10),Color.white.opacity(0.035)],startPoint:.topLeading,endPoint:.bottomTrailing),in:RoundedRectangle(cornerRadius:12))
+            .overlay(RoundedRectangle(cornerRadius:12).stroke(canBuy ? Color.orange.opacity(0.30) : Color.white.opacity(0.08),lineWidth:1))
+        }
+        .buttonStyle(.plain)
+        .disabled(!canBuy)
     }
     private func statBar(_ title:String,_ value:Double)->some View {
         VStack(spacing:3) { Text(title).font(.system(size:8,weight:.black));ProgressView(value:min(1,max(0,value))).tint(.orange).frame(width:75) }
@@ -424,4 +449,63 @@ private struct ActivityView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+private struct MenuBackdrop: View {
+    var body: some View {
+        Canvas { context, size in
+            let sky = Path(CGRect(origin:.zero,size:size))
+            context.fill(sky,with:.linearGradient(Gradient(colors:[Color(red:0.10,green:0.12,blue:0.17),Color(red:0.30,green:0.15,blue:0.14),Color(red:0.08,green:0.08,blue:0.10)]),startPoint:CGPoint(x:0,y:0),endPoint:CGPoint(x:size.width*0.72,y:size.height)))
+
+            let sunRect = CGRect(x:size.width*0.66,y:size.height*0.20,width:size.height*0.34,height:size.height*0.34)
+            context.fill(Path(ellipseIn:sunRect.insetBy(dx:-size.height*0.12,dy:-size.height*0.12)),with:.radialGradient(Gradient(colors:[Color.orange.opacity(0.34),Color.orange.opacity(0)]),center:CGPoint(x:sunRect.midX,y:sunRect.midY),startRadius:2,endRadius:size.height*0.34))
+            context.fill(Path(ellipseIn:sunRect),with:.linearGradient(Gradient(colors:[Color(red:1,green:0.68,blue:0.35),Color(red:0.73,green:0.24,blue:0.17)]),startPoint:CGPoint(x:sunRect.midX,y:sunRect.minY),endPoint:CGPoint(x:sunRect.midX,y:sunRect.maxY)))
+
+            var far = Path()
+            far.move(to:CGPoint(x:0,y:size.height*0.70))
+            for i in 0...14 {
+                let x = size.width*CGFloat(i)/14
+                let y = size.height*(0.55 + 0.10*sin(Double(i)*1.2) + 0.035*cos(Double(i)*2.1))
+                far.addLine(to:CGPoint(x:x,y:y))
+            }
+            far.addLine(to:CGPoint(x:size.width,y:size.height))
+            far.addLine(to:CGPoint(x:0,y:size.height))
+            far.closeSubpath()
+            context.fill(far,with:.color(Color(red:0.19,green:0.12,blue:0.13).opacity(0.92)))
+
+            var near = Path()
+            near.move(to:CGPoint(x:0,y:size.height*0.78))
+            for i in 0...12 {
+                let x = size.width*CGFloat(i)/12
+                let y = size.height*(0.66 + 0.035*sin(Double(i)*1.65) + 0.025*cos(Double(i)*0.72))
+                near.addLine(to:CGPoint(x:x,y:y))
+            }
+            near.addLine(to:CGPoint(x:size.width,y:size.height))
+            near.addLine(to:CGPoint(x:0,y:size.height))
+            near.closeSubpath()
+            context.fill(near,with:.color(Color(red:0.075,green:0.075,blue:0.085)))
+
+            for i in 0..<18 {
+                let x = size.width*CGFloat(i)/18
+                let width = size.width*CGFloat(0.018 + Double(i%4)*0.004)
+                let height = size.height*CGFloat(0.10 + Double((i*7)%9)*0.025)
+                let building = CGRect(x:x,y:size.height*0.69-height,width:width,height:height)
+                context.fill(Path(building),with:.color(Color(red:0.065,green:0.07,blue:0.08).opacity(0.92)))
+                for row in 0..<3 {
+                    let window = CGRect(x:building.minX+width*0.24,y:building.minY+height*CGFloat(0.20+row*0.22),width:width*0.16,height:3)
+                    context.fill(Path(window),with:.color(Color.orange.opacity(0.32)))
+                }
+            }
+
+            var road = Path()
+            road.move(to:CGPoint(x:0,y:size.height*0.82))
+            road.addCurve(to:CGPoint(x:size.width,y:size.height*0.83),control1:CGPoint(x:size.width*0.30,y:size.height*0.77),control2:CGPoint(x:size.width*0.68,y:size.height*0.87))
+            context.stroke(road,with:.color(Color(red:0.75,green:0.31,blue:0.16).opacity(0.75)),style:StrokeStyle(lineWidth:max(8,size.height*0.025),lineCap:.round))
+            var roadMark = Path()
+            roadMark.move(to:CGPoint(x:0,y:size.height*0.82))
+            roadMark.addCurve(to:CGPoint(x:size.width,y:size.height*0.83),control1:CGPoint(x:size.width*0.30,y:size.height*0.77),control2:CGPoint(x:size.width*0.68,y:size.height*0.87))
+            context.stroke(roadMark,with:.color(Color(red:0.93,green:0.67,blue:0.39).opacity(0.55)),style:StrokeStyle(lineWidth:2,dash:[18,24]))
+            context.fill(Path(CGRect(x:0,y:size.height*0.88,width:size.width,height:size.height*0.12)),with:.linearGradient(Gradient(colors:[Color.black.opacity(0.15),Color.black.opacity(0.75)]),startPoint:CGPoint(x:0,y:size.height*0.88),endPoint:CGPoint(x:0,y:size.height)))
+        }
+    }
 }
