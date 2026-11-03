@@ -386,7 +386,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let reverseDrive = brakePressed && speed < 35 && fuel > 0
         for joint in wheelJoints {
             if gasPressed && fuel > 0 {
-                joint.rotationSpeed = -11.5 * engine
+                joint.rotationSpeed = -min(46,(speed+135)/15)
                 joint.frictionTorque = 58 * engine
             } else if reverseDrive {
                 joint.rotationSpeed = 8.5
