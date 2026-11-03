@@ -105,6 +105,13 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             for tile in -1...5 {
                 let origin = CGFloat(tile)*tileWidth
                 if layer == 0 {
+                    let panorama = SKSpriteNode(imageNamed:"WastelandPanorama")
+                    panorama.size = CGSize(width:tileWidth,height:tileWidth*211/480)
+                    panorama.position = CGPoint(x:origin+tileWidth*0.5,y:330)
+                    panorama.alpha = 0.92
+                    panorama.zPosition = -12
+                    group.addChild(panorama)
+
                     let ridge = CGMutablePath()
                     ridge.move(to:CGPoint(x:origin,y:-80))
                     ridge.addLine(to:CGPoint(x:origin,y:195))
