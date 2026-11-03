@@ -123,6 +123,7 @@ final class PlayerProgress {
     var hapticsEnabled = true
     var largeHUD = false
     var controlScale = 1.0
+    var leftHandedControls = false
     var totalFuelPickups = 0
     var totalCashPickups = 0
     var totalBoostPickups = 0
@@ -282,6 +283,7 @@ final class PlayerProgress {
         dailyChallengeDate = ""
         dailyChallengeProgress = 0
         dailyChallengeClaimed = false
+        leftHandedControls = false
         save()
     }
 
@@ -368,6 +370,7 @@ private struct SavePayload: Codable {
     var dailyChallengeDate: String?
     var dailyChallengeProgress: Int?
     var dailyChallengeClaimed: Bool?
+    var leftHandedControls: Bool?
 
     init(progress p: PlayerProgress) {
         cash = p.cash
@@ -397,6 +400,7 @@ private struct SavePayload: Codable {
         dailyChallengeDate = p.dailyChallengeDate
         dailyChallengeProgress = p.dailyChallengeProgress
         dailyChallengeClaimed = p.dailyChallengeClaimed
+        leftHandedControls = p.leftHandedControls
     }
 
     func apply(to p: PlayerProgress) {
@@ -428,5 +432,6 @@ private struct SavePayload: Codable {
         p.dailyChallengeDate = dailyChallengeDate ?? ""
         p.dailyChallengeProgress = dailyChallengeProgress ?? 0
         p.dailyChallengeClaimed = dailyChallengeClaimed ?? false
+        p.leftHandedControls = leftHandedControls ?? false
     }
 }
