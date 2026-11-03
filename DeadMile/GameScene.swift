@@ -368,6 +368,19 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let firePressed = input.fire || (pad?.buttonA.isPressed ?? false)
         FeedbackService.shared.updateEngine(speed:speed,audio:audioEnabled,biome:level)
         let engine=CGFloat(vehicle.power)*(1+CGFloat(upgradeTiers["engine",default:0])*0.18)
+        let reverseDrive = brakePressed && speed < 35 && fuel > 0
+        for joint in wheelJoints {
+            if gasPressed && fuel > 0 {
+                joint.rotationSpeed = -11.5 * engine
+                joint.frictionTorque = 58 * engine
+            } else if reverseDrive {
+                joint.rotationSpeed = 8.5
+                joint.frictionTorque = 46
+            } else {
+                joint.rotationSpeed = 0
+                joint.frictionTorque = 72
+            }
+        }
         if gasPressed && fuel>0 {
             body.applyForce(CGVector(dx:Tune.engineForce*engine,dy:0))
             fuel=max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.08)*dt)
@@ -397,22 +410,24 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         distance=max(distance,car.position.x-150)
         if explorationMode && car.position.x-lastKit > 6500 {
             lastKit = car.position.x
-            spawnPickup(at: CGPoint(x:car.position.x+CGFloat.random(in:700...1100),y:CGFloat.random(in:160...230)), kind:4)
+            let kitX = car.position.x+CGFloat.random(in:700...1100)
+            spawnPickup(at: CGPoint(x:kitX,y:roadSurfaceY(at:kitX)+34), kind:4)
         }
         if car.position.x-lastPickup > 1900 {
             lastPickup = car.position.x
-            spawnPickup(at: CGPoint(x:car.position.x+650,y:CGFloat.random(in:150...220)), kind:pickupIndex % 4)
+            let pickupX = car.position.x+650
+            spawnPickup(at: CGPoint(x:pickupX,y:roadSurfaceY(at:pickupX)+34), kind:pickupIndex % 4)
             pickupIndex += 1
         }
         if car.position.x-lastSpawn > Tune.zombieSpawnDistance && zombies.count<Tune.maxActiveZombies {
             lastSpawn=car.position.x
-            spawnZombie(at:CGPoint(x:car.position.x+CGFloat.random(in:360...650),y:CGFloat.random(in:140...235)))
+            let zombieX = car.position.x+CGFloat.random(in:360...650)
+            spawnZombie(at:CGPoint(x:zombieX,y:roadSurfaceY(at:zombieX)+28))
         }
         if car.position.x-lastHazard > 1450 && hazards.count < 8 {
             lastHazard = car.position.x
             let hazardX = car.position.x + CGFloat.random(in:520...820)
-            let roadY = 65 + sin(hazardX/420)*32 + cos(hazardX/910)*22
-            spawnHazard(at:CGPoint(x:hazardX,y:roadY+28))
+            spawnHazard(at:CGPoint(x:hazardX,y:roadSurfaceY(at:hazardX)+22))
         }
         for zombie in zombies {
             let delta = car.position.x - zombie.position.x
@@ -425,7 +440,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 let gap = zombie.position.x - other.position.x
                 if abs(gap) < 64 { separation += gap >= 0 ? 13 : -13 }
             }
-            zombie.physicsBody?.velocity.dx = max(-60, min(60, direction * chaseSpeed + separation))
+            zombie.physicsBody?.velocity.dx = max(-92, min(92, direction * chaseSpeed + separation))
         }
         for zombie in zombies where zombie.position.x < cameraNode.position.x-850 { zombie.removeFromParent() }
         for projectile in projectiles where projectile.position.x > cameraNode.position.x+1000 || projectile.position.x < cameraNode.position.x-1000 { projectile.removeFromParent() }
@@ -435,11 +450,11 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         for item in debris where item.position.x < cameraNode.position.x-850 { item.removeFromParent() }
         debris.removeAll { $0.parent == nil }
         hazards.removeAll { $0.parent == nil }
-        cameraNode.position=CGPoint(x:max(400,car.position.x+Tune.cameraLookAhead),y:max(230,car.position.y+115))
+        cameraNode.position=CGPoint(x:max(0,car.position.x+Tune.cameraLookAhead),y:max(80,car.position.y+42))
         for node in children where node.name?.hasPrefix("parallax-") == true {
             let layer=CGFloat(Int(node.name.map { String($0.suffix(1)) } ?? "0") ?? 0)
-            let parallax=0.10 + layer * 0.06
-            let tileWidth:CGFloat=2660
+            let parallax=0.08 + layer * 0.10
+            let tileWidth:CGFloat=2200
             let wraps=floor(cameraNode.position.x * parallax / tileWidth)
             node.position.x = cameraNode.position.x * (1 - parallax) + wraps * tileWidth
         }
