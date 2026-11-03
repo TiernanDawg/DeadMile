@@ -526,7 +526,10 @@ private struct MenuBackdrop: View {
             far.move(to:CGPoint(x:0,y:size.height*0.70))
             for i in 0...14 {
                 let x = size.width*CGFloat(i)/14
-                let y = size.height*CGFloat(0.55 + 0.10*sin(Double(i)*1.2) + 0.035*cos(Double(i)*2.1))
+                let waveA = sin(Double(i)*1.2) * 0.10
+                let waveB = cos(Double(i)*2.1) * 0.035
+                let relativeY: Double = 0.55 + waveA + waveB
+                let y = size.height * CGFloat(relativeY)
                 far.addLine(to:CGPoint(x:x,y:y))
             }
             far.addLine(to:CGPoint(x:size.width,y:size.height))
@@ -538,7 +541,10 @@ private struct MenuBackdrop: View {
             near.move(to:CGPoint(x:0,y:size.height*0.78))
             for i in 0...12 {
                 let x = size.width*CGFloat(i)/12
-                let y = size.height*CGFloat(0.66 + 0.035*sin(Double(i)*1.65) + 0.025*cos(Double(i)*0.72))
+                let waveA = sin(Double(i)*1.65) * 0.035
+                let waveB = cos(Double(i)*0.72) * 0.025
+                let relativeY: Double = 0.66 + waveA + waveB
+                let y = size.height * CGFloat(relativeY)
                 near.addLine(to:CGPoint(x:x,y:y))
             }
             near.addLine(to:CGPoint(x:size.width,y:size.height))
