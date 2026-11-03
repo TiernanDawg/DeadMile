@@ -462,6 +462,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         for projectile in projectiles where projectile.position.x > cameraNode.position.x+1000 || projectile.position.x < cameraNode.position.x-1000 { projectile.removeFromParent() }
         projectiles.removeAll { $0.parent == nil }
         zombies.removeAll { $0.parent == nil }
+        for pickup in pickups where pickup.position.x < cameraNode.position.x-850 { pickup.removeFromParent() }
+        pickups.removeAll { $0.parent == nil }
         for hazard in hazards where hazard.position.x < cameraNode.position.x-850 { hazard.removeFromParent() }
         for item in debris where item.position.x < cameraNode.position.x-850 { item.removeFromParent() }
         debris.removeAll { $0.parent == nil }
