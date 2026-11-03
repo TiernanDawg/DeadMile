@@ -28,7 +28,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     var upgradeTiers: [String:Int] = [:]
     private var chassis: SKSpriteNode?
     private var wheels: [SKSpriteNode] = []
-    private var wheelJoints: [SKPhysicsJointPin] = []
+    private var suspensionJoints: [[SKPhysicsJoint]] = []
     private var damageOverlay: SKShapeNode?
     private var hoodPanel: SKShapeNode?
     private var debris: [SKNode] = []
@@ -63,10 +63,12 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var lastHUD: TimeInterval = 0
     private var terrainBodies: [SKNode] = []
     private var randomSeed: UInt64 = 0xDEAD_BEEF
+    private var lastVehicleImpact: TimeInterval = -10
 
     override func didMove(to view: SKView) {
         backgroundColor = UIColor(red:0.12,green:0.10,blue:0.12,alpha:1)
         physicsWorld.gravity = CGVector(dx:0,dy:Tune.gravity)
+        physicsWorld.speed = 1
         physicsWorld.contactDelegate = self
         camera = cameraNode
         addChild(cameraNode)
@@ -193,7 +195,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     private func roadBaseY(at x: CGFloat) -> CGFloat {
-        65 + sin(x/420)*32 + cos(x/910)*22 + sin(x/137)*4
+        65 + sin(x/780)*16 + cos(x/1650)*10 + sin(x/3200)*5
     }
 
     private func roadSurfaceY(at x: CGFloat) -> CGFloat {
@@ -204,7 +206,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let biome = Biome.all[min(max(level,0),9)]
         let startX: CGFloat = -1400
         let endX: CGFloat = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10 + 900
-        let step: CGFloat = 80
+        let step: CGFloat = 24
         let centerPath = CGMutablePath()
         let surfacePath = CGMutablePath()
         let fillPath = CGMutablePath()
@@ -273,7 +275,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let physicsGround = SKNode()
         physicsGround.physicsBody = SKPhysicsBody(edgeChainFrom:surfacePath)
         physicsGround.physicsBody?.categoryBitMask = CollisionLayer.terrain
-        physicsGround.physicsBody?.collisionBitMask = CollisionLayer.vehicle | CollisionLayer.wheel
+        physicsGround.physicsBody?.collisionBitMask = CollisionLayer.vehicle | CollisionLayer.wheel | CollisionLayer.infected | CollisionLayer.hazard
         physicsGround.physicsBody?.friction = 1.7
         physicsGround.physicsBody?.restitution = 0.015
         addChild(physicsGround)
@@ -281,23 +283,32 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     private func buildVehicle() {
-        let width=CGFloat(150*vehicle.width)
+        let width = CGFloat(150 * vehicle.width)
         maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
-        let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id,includeWheels:false),size:CGSize(width:width,height:65))
-        car.position=CGPoint(x:150,y:roadSurfaceY(at:150)+42); car.zPosition=10
-        car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
-        car.physicsBody?.mass=CGFloat(vehicle.mass*4.2)
-        car.physicsBody?.allowsRotation=true
-        car.physicsBody?.linearDamping=0.12
-        car.physicsBody?.angularDamping=0.42
-        car.physicsBody?.friction=0.9
-        car.physicsBody?.categoryBitMask=CollisionLayer.vehicle
-        car.physicsBody?.contactTestBitMask=CollisionLayer.infected | CollisionLayer.pickup | CollisionLayer.hazard
-        car.physicsBody?.collisionBitMask=CollisionLayer.terrain | CollisionLayer.infected | CollisionLayer.hazard
-        addChild(car); chassis=car
+
+        let car = SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id,includeWheels:false),size:CGSize(width:width,height:65))
+        car.position = CGPoint(x:150,y:roadSurfaceY(at:150)+42)
+        car.zPosition = 10
+
+        let chassisSize = CGSize(width:width*0.82,height:30)
+        let body = SKPhysicsBody(rectangleOf:chassisSize)
+        body.mass = CGFloat(vehicle.mass*5.6)
+        body.allowsRotation = true
+        body.linearDamping = 0.12
+        body.angularDamping = 1.6
+        body.friction = 0.75
+        body.restitution = 0.015
+        body.categoryBitMask = CollisionLayer.vehicle
+        body.contactTestBitMask = CollisionLayer.infected | CollisionLayer.pickup | CollisionLayer.hazard
+        body.collisionBitMask = CollisionLayer.terrain | CollisionLayer.infected | CollisionLayer.hazard
+        body.usesPreciseCollisionDetection = true
+        car.physicsBody = body
+        addChild(car)
+        chassis = car
+
         let damagePath = CGMutablePath()
         damagePath.move(to:CGPoint(x:-42,y:12))
         damagePath.addLine(to:CGPoint(x:-18,y:-2))
@@ -311,6 +322,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         damage.zPosition = 8
         car.addChild(damage)
         damageOverlay = damage
+
         let hood = SKShapeNode(rectOf:CGSize(width:38,height:8),cornerRadius:2)
         hood.fillColor = UIColor(white:0.42,alpha:1)
         hood.strokeColor = UIColor(white:0.8,alpha:1)
@@ -319,6 +331,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         hood.zPosition = 5
         car.addChild(hood)
         hoodPanel = hood
+
         if upgradeTiers["weapon",default:0] > 0 {
             let mount = SKShapeNode(rectOf:CGSize(width:34,height:10),cornerRadius:3)
             mount.fillColor = UIColor(white:0.22,alpha:1)
@@ -334,25 +347,50 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             barrel.zPosition = 4
             car.addChild(barrel)
         }
+
         for x in [-width*0.28,width*0.28] {
-            let wheel=SKSpriteNode(texture:wheelTexture(),size:CGSize(width:36,height:36))
-            wheel.position=CGPoint(x:car.position.x+x,y:car.position.y-26); wheel.zPosition=11
-            wheel.physicsBody=SKPhysicsBody(circleOfRadius:15)
-            wheel.physicsBody?.mass=CGFloat(vehicle.mass*0.45)
-            wheel.physicsBody?.friction=2.4
-            wheel.physicsBody?.linearDamping=0.18
-            wheel.physicsBody?.restitution=0.02
-            wheel.physicsBody?.allowsRotation=true
-            wheel.physicsBody?.categoryBitMask=CollisionLayer.wheel
-            wheel.physicsBody?.collisionBitMask=CollisionLayer.terrain
-            wheel.physicsBody?.contactTestBitMask=0
-            addChild(wheel); wheels.append(wheel)
-            if let a=car.physicsBody, let b=wheel.physicsBody {
-                let joint=SKPhysicsJointPin.joint(withBodyA:a,bodyB:b,anchor:wheel.position)
-                joint.rotationSpeed = 0
-                joint.frictionTorque = 42
-                physicsWorld.add(joint)
-                wheelJoints.append(joint)
+            let wheel = SKSpriteNode(texture:wheelTexture(),size:CGSize(width:36,height:36))
+            wheel.position = CGPoint(x:car.position.x+x,y:car.position.y-27)
+            wheel.zPosition = 11
+            let wheelBody = SKPhysicsBody(circleOfRadius:15.5)
+            wheelBody.mass = max(0.65,CGFloat(vehicle.mass)*0.62)
+            wheelBody.friction = 3.8
+            wheelBody.linearDamping = 0.04
+            wheelBody.angularDamping = 0.035
+            wheelBody.restitution = 0.01
+            wheelBody.allowsRotation = true
+            wheelBody.categoryBitMask = CollisionLayer.wheel
+            wheelBody.collisionBitMask = CollisionLayer.terrain | CollisionLayer.hazard | CollisionLayer.infected
+            wheelBody.contactTestBitMask = 0
+            wheelBody.usesPreciseCollisionDetection = true
+            wheel.physicsBody = wheelBody
+            addChild(wheel)
+            wheels.append(wheel)
+
+            if let chassisBody = car.physicsBody, let tireBody = wheel.physicsBody {
+                let slide = SKPhysicsJointSliding.joint(
+                    withBodyA:chassisBody,
+                    bodyB:tireBody,
+                    anchor:wheel.position,
+                    axis:CGVector(dx:0,dy:1)
+                )
+                slide.shouldEnableLimits = true
+                slide.lowerDistanceLimit = -8
+                slide.upperDistanceLimit = 14
+
+                let springAnchor = CGPoint(x:car.position.x+x,y:car.position.y-13)
+                let spring = SKPhysicsJointSpring.joint(
+                    withBodyA:chassisBody,
+                    bodyB:tireBody,
+                    anchorA:springAnchor,
+                    anchorB:wheel.position
+                )
+                spring.frequency = 4.2
+                spring.damping = 0.92
+
+                physicsWorld.add(slide)
+                physicsWorld.add(spring)
+                suspensionJoints.append([slide,spring])
             }
         }
     }
@@ -397,13 +435,29 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 joint.frictionTorque = 72
             }
         }
-        if gasPressed && fuel>0 {
-            body.applyForce(CGVector(dx:Tune.engineForce*engine,dy:0))
-            fuel=max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.08)*dt)
-        }
-        if brakePressed {
-            if speed>35 { body.applyForce(CGVector(dx:-Tune.reverseForce*CGFloat(vehicle.mass),dy:0)) }
-            else if fuel>0 { body.applyForce(CGVector(dx:-Tune.reverseForce*0.55,dy:0)); fuel=max(0,fuel-Tune.fuelBurnPerSecond*dt) }
+        if gasPressed && fuel > 0 {
+            let torquePerWheel = Tune.wheelDriveTorque * engine / CGFloat(max(1,wheels.count))
+            for wheel in wheels {
+                guard let wheelBody = wheel.physicsBody else { continue }
+                wheelBody.applyTorque(-torquePerWheel)
+                if abs(wheelBody.angularVelocity) > Tune.maxWheelAngularSpeed {
+                    wheelBody.angularVelocity = wheelBody.angularVelocity < 0 ? -Tune.maxWheelAngularSpeed : Tune.maxWheelAngularSpeed
+                }
+            }
+            fuel = max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.08)*dt)
+        } else if reverseDrive {
+            for wheel in wheels { wheel.physicsBody?.applyTorque(Tune.wheelReverseTorque * CGFloat(vehicle.power)) }
+            fuel = max(0,fuel-Tune.fuelBurnPerSecond*dt)
+        } else if brakePressed {
+            if abs(body.velocity.dx) > 2 {
+                let brakeDirection: CGFloat = body.velocity.dx >= 0 ? -1 : 1
+                body.applyForce(CGVector(dx:brakeDirection*Tune.brakeForce,dy:0))
+            }
+            for wheel in wheels {
+                if let wheelBody = wheel.physicsBody {
+                    wheelBody.applyTorque(-wheelBody.angularVelocity * Tune.wheelBrakeDamping)
+                }
+            }
         }
         if tiltLeftPressed { body.applyTorque(Tune.airTorque*body.mass) }
         if tiltRightPressed { body.applyTorque(-Tune.airTorque*body.mass) }
@@ -438,25 +492,31 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         if car.position.x-lastSpawn > Tune.zombieSpawnDistance && zombies.count<Tune.maxActiveZombies {
             lastSpawn=car.position.x
             let zombieX = car.position.x+CGFloat.random(in:360...650)
-            spawnZombie(at:CGPoint(x:zombieX,y:roadSurfaceY(at:zombieX)+28))
+            spawnZombie(at:CGPoint(x:zombieX,y:roadSurfaceY(at:zombieX)))
         }
         if car.position.x-lastHazard > 1450 && hazards.count < 8 {
             lastHazard = car.position.x
             let hazardX = car.position.x + CGFloat.random(in:520...820)
-            spawnHazard(at:CGPoint(x:hazardX,y:roadSurfaceY(at:hazardX)+22))
+            spawnHazard(at:CGPoint(x:hazardX,y:roadSurfaceY(at:hazardX)))
         }
         for zombie in zombies {
+            guard let zombieBody = zombie.physicsBody else { continue }
             let delta = car.position.x - zombie.position.x
             let direction: CGFloat = delta < 0 ? -1 : 1
             let variant = zombie.userData?["variant"] as? Int ?? 0
-            let speeds:[CGFloat] = [24,52,17,22,20,65,13,26,19,40]
-            let chaseSpeed = speeds[min(max(variant,0),speeds.count-1)] + CGFloat(min(level, 9) * 3)
+            let speeds:[CGFloat] = [30,48,19,24,22,58,15,27,20,36]
+            let chaseSpeed = speeds[min(max(variant,0),speeds.count-1)] + CGFloat(min(level,9)*2)
             var separation: CGFloat = 0
             for other in zombies where other !== zombie {
                 let gap = zombie.position.x - other.position.x
-                if abs(gap) < 64 { separation += gap >= 0 ? 13 : -13 }
+                if abs(gap) < 58 { separation += gap >= 0 ? 8 : -8 }
             }
-            zombie.physicsBody?.velocity.dx = max(-92, min(92, direction * chaseSpeed + separation))
+            let desiredSpeed = direction * (chaseSpeed + separation)
+            let steering = max(-95,min(95,(desiredSpeed-zombieBody.velocity.dx)*1.25))
+            zombieBody.applyForce(CGVector(dx:steering*zombieBody.mass,dy:0))
+            if abs(zombieBody.velocity.dx) > 82 {
+                zombieBody.velocity.dx = zombieBody.velocity.dx < 0 ? -82 : 82
+            }
         }
         for zombie in zombies where zombie.position.x < cameraNode.position.x-850 { zombie.removeFromParent() }
         for projectile in projectiles where projectile.position.x > cameraNode.position.x+1000 || projectile.position.x < cameraNode.position.x-1000 { projectile.removeFromParent() }
@@ -468,7 +528,10 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         for item in debris where item.position.x < cameraNode.position.x-850 { item.removeFromParent() }
         debris.removeAll { $0.parent == nil }
         hazards.removeAll { $0.parent == nil }
-        cameraNode.position=CGPoint(x:max(0,car.position.x+Tune.cameraLookAhead),y:max(80,car.position.y+42))
+        let cameraTarget = CGPoint(x:max(0,car.position.x+Tune.cameraLookAhead),y:max(80,car.position.y+42))
+        let cameraBlend = min(1,dt*5.5)
+        cameraNode.position.x += (cameraTarget.x-cameraNode.position.x)*cameraBlend
+        cameraNode.position.y += (cameraTarget.y-cameraNode.position.y)*cameraBlend
         for node in children where node.name?.hasPrefix("parallax-") == true {
             let layer=CGFloat(Int(node.name.map { String($0.suffix(1)) } ?? "0") ?? 0)
             let parallax=0.08 + layer * 0.10
@@ -492,8 +555,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             hoodPanel = nil
             panelDetached = true
         }
-        if !detachedWheel && health <= maxHealth * 0.28, let joint = wheelJoints.popLast() {
-            physicsWorld.remove(joint)
+        if !detachedWheel && health <= maxHealth * 0.28, let joints = suspensionJoints.popLast() {
+            for joint in joints { physicsWorld.remove(joint) }
             detachedWheel = true
             wheels.last?.name = "detached-wheel"
             emitDust(at:car.position,color:.orange)
@@ -521,55 +584,67 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         body.categoryBitMask = CollisionLayer.projectile
         body.contactTestBitMask = CollisionLayer.infected
         body.collisionBitMask = 0
+        body.usesPreciseCollisionDetection = true
         bullet.physicsBody = body
         addChild(bullet)
         projectiles.append(bullet)
         body.velocity = CGVector(dx:900+CGFloat(tier)*180,dy:0)
     }
 
-    private func spawnZombie(at point:CGPoint) {
-        let variant=Int.random(in:0..<10)
-        let scale=Biome.all[min(max(level,0),9)].zombieScale
+    private func spawnZombie(at groundPoint:CGPoint) {
+        let variant = Int.random(in:0..<10)
+        let scale = Biome.all[min(max(level,0),9)].zombieScale
         let widths:[CGFloat] = [44,39,54,44,44,36,58,44,50,50]
         let heights:[CGFloat] = [65,62,72,65,65,66,75,68,70,42]
-        let baseWidth = widths[variant]
-        let baseHeight = heights[variant]
-        let zombie=SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:baseWidth*scale,height:baseHeight*scale))
-        zombie.position=point; zombie.zPosition=8; zombie.name="zombie"
         let bodyWidths:[CGFloat] = [28,24,38,28,30,22,44,28,36,38]
         let bodyHeights:[CGFloat] = [48,42,56,48,50,44,62,52,58,24]
-        zombie.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:bodyWidths[variant]*scale,height:bodyHeights[variant]*scale))
         let masses:[CGFloat] = [0.9,0.65,2.8,1.4,1.8,0.55,3.5,1.2,2.6,0.8]
-        zombie.physicsBody?.mass=masses[variant] * scale
-        let metadata=NSMutableDictionary()
+        let bodySize = CGSize(width:bodyWidths[variant]*scale,height:bodyHeights[variant]*scale)
+        let zombie = SKSpriteNode(texture:ArtFactory.zombie(variant:variant),size:CGSize(width:widths[variant]*scale,height:heights[variant]*scale))
+        zombie.position = CGPoint(x:groundPoint.x,y:groundPoint.y+bodySize.height*0.5+1)
+        zombie.zPosition = 8
+        zombie.name = "zombie"
+        let body = SKPhysicsBody(rectangleOf:bodySize)
+        body.mass = masses[variant]*scale
+        body.linearDamping = 0.28
+        body.angularDamping = 1.8
+        body.friction = 1.45
+        body.restitution = 0.015
+        body.isDynamic = true
+        body.allowsRotation = true
+        body.categoryBitMask = CollisionLayer.infected
+        body.contactTestBitMask = CollisionLayer.vehicle | CollisionLayer.projectile
+        body.collisionBitMask = CollisionLayer.vehicle | CollisionLayer.infected | CollisionLayer.terrain | CollisionLayer.hazard
+        body.usesPreciseCollisionDetection = true
+        zombie.physicsBody = body
+        let metadata = NSMutableDictionary()
         metadata["variant"] = variant
         metadata["hp"] = variant == 8 ? 3 : (variant == 6 ? 2 : 1)
-        zombie.userData=metadata
-        zombie.physicsBody?.linearDamping=0.7
-        zombie.physicsBody?.angularDamping=0.8
-        zombie.physicsBody?.isDynamic=true
-        zombie.physicsBody?.allowsRotation=true
-        zombie.physicsBody?.categoryBitMask=CollisionLayer.infected
-        zombie.physicsBody?.contactTestBitMask=CollisionLayer.vehicle
-        zombie.physicsBody?.collisionBitMask=CollisionLayer.vehicle | CollisionLayer.terrain
-        addChild(zombie); zombies.append(zombie)
+        metadata["nextDamage"] = 0.0
+        zombie.userData = metadata
+        addChild(zombie)
+        zombies.append(zombie)
     }
 
-    private func spawnHazard(at point:CGPoint) {
+    private func spawnHazard(at groundPoint:CGPoint) {
         let kind = Int.random(in:0..<3)
         let node: SKShapeNode
+        let bodySize: CGSize
         switch kind {
         case 0:
-            node = SKShapeNode(rectOf:CGSize(width:54,height:38),cornerRadius:5)
+            bodySize = CGSize(width:54,height:38)
+            node = SKShapeNode(rectOf:bodySize,cornerRadius:5)
             node.fillColor = UIColor(red:0.38,green:0.22,blue:0.13,alpha:1)
             node.strokeColor = UIColor(red:0.76,green:0.52,blue:0.29,alpha:1)
             node.lineWidth = 4
         case 1:
+            bodySize = CGSize(width:50,height:50)
             node = SKShapeNode(circleOfRadius:25)
             node.fillColor = UIColor(white:0.16,alpha:1)
             node.strokeColor = UIColor(white:0.48,alpha:1)
             node.lineWidth = 6
         default:
+            bodySize = CGSize(width:64,height:38)
             let path = CGMutablePath()
             path.move(to:CGPoint(x:-34,y:-16))
             path.addLine(to:CGPoint(x:-18,y:22))
@@ -582,16 +657,25 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             node.strokeColor = .white
             node.lineWidth = 2
         }
-        node.position = point
+        node.position = CGPoint(x:groundPoint.x,y:groundPoint.y+bodySize.height*0.5+2)
         node.zPosition = 7
         node.name = "hazard"
-        node.physicsBody = kind == 1
-            ? SKPhysicsBody(circleOfRadius:25)
-            : SKPhysicsBody(rectangleOf:CGSize(width:kind == 2 ? 64 : 54,height:kind == 2 ? 38 : 38))
-        node.physicsBody?.isDynamic = false
-        node.physicsBody?.categoryBitMask = CollisionLayer.hazard
-        node.physicsBody?.contactTestBitMask = CollisionLayer.vehicle
-        node.physicsBody?.collisionBitMask = CollisionLayer.vehicle
+        let body: SKPhysicsBody = kind == 1 ? SKPhysicsBody(circleOfRadius:25) : SKPhysicsBody(rectangleOf:bodySize)
+        body.isDynamic = true
+        body.mass = [6.0,15.0,9.0][kind]
+        body.friction = kind == 1 ? 1.9 : 1.25
+        body.linearDamping = 0.08
+        body.angularDamping = 0.12
+        body.restitution = kind == 1 ? 0.24 : 0.10
+        body.categoryBitMask = CollisionLayer.hazard
+        body.contactTestBitMask = CollisionLayer.vehicle
+        body.collisionBitMask = CollisionLayer.vehicle | CollisionLayer.wheel | CollisionLayer.infected | CollisionLayer.terrain
+        body.usesPreciseCollisionDetection = true
+        node.physicsBody = body
+        let metadata = NSMutableDictionary()
+        metadata["kind"] = kind
+        metadata["nextHit"] = -1.0
+        node.userData = metadata
         addChild(node)
         hazards.append(node)
     }
@@ -609,56 +693,90 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     func didBegin(_ contact:SKPhysicsContact) {
-        let a=contact.bodyA.node, b=contact.bodyB.node
-        if let zombie=(a?.name=="zombie" ? a : b?.name=="zombie" ? b : nil) {
+        let a = contact.bodyA.node
+        let b = contact.bodyB.node
+
+        if let zombie = (a?.name == "zombie" ? a : b?.name == "zombie" ? b : nil) {
             let bullet = a?.name == "bullet" ? a : (b?.name == "bullet" ? b : nil)
-            let variant = zombie.userData?["variant"] as? Int ?? 0
-            let hp = zombie.userData?["hp"] as? Int ?? 1
-            if bullet != nil && hp > 1 {
-                zombie.userData?["hp"] = hp - 1
-                if let sprite = zombie as? SKSpriteNode {
-                    sprite.color = .red
-                    sprite.colorBlendFactor = 0.65
+            if let bullet {
+                let hp = zombie.userData?["hp"] as? Int ?? 1
+                let remaining = hp - 1
+                if remaining <= 0 {
+                    eliminateZombie(zombie)
+                } else {
+                    zombie.userData?["hp"] = remaining
+                    if let sprite = zombie as? SKSpriteNode {
+                        sprite.color = .red
+                        sprite.colorBlendFactor = min(0.75,0.25+CGFloat(3-remaining)*0.18)
+                        sprite.run(.sequence([.colorize(withColorBlendFactor:0.05,duration:0.16)]))
+                    }
+                    emitDust(at:zombie.position,color:.orange)
                 }
-                bullet?.removeFromParent()
+                bullet.removeFromParent()
                 projectiles.removeAll { $0 === bullet }
-                emitDust(at:zombie.position,color:.orange)
-            } else {
-                let impact=abs(contact.collisionImpulse)
-                kills += 1
-                FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
-                cash += Tune.hitCash + Int(min(impact/80,20))
-                emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
-                zombie.removeFromParent()
-                zombies.removeAll { $0 === zombie }
-                if let bullet {
-                    bullet.removeFromParent()
-                    projectiles.removeAll { $0 === bullet }
-                } else if impact < 18 {
-                    let multiplier: CGFloat = variant == 6 ? 2.0 : (variant == 7 ? 1.5 : 1.0)
-                    health=max(0,health-Tune.zombieContactDamage*multiplier)
+            } else if let car = chassis, let zombieBody = zombie.physicsBody {
+                let vehicleSpeed = abs(car.physicsBody?.velocity.dx ?? 0)
+                let direction: CGFloat = zombie.position.x >= car.position.x ? 1 : -1
+                zombieBody.applyImpulse(CGVector(dx:direction*(150+vehicleSpeed*0.22),dy:72))
+                zombieBody.applyAngularImpulse(direction*2.8)
+
+                if vehicleSpeed > 360 {
+                    let hp = zombie.userData?["hp"] as? Int ?? 1
+                    let remaining = hp - 1
+                    if remaining <= 0 {
+                        eliminateZombie(zombie)
+                    } else {
+                        zombie.userData?["hp"] = remaining
+                    }
+                }
+
+                let nextDamage = zombie.userData?["nextDamage"] as? Double ?? 0
+                if elapsed >= nextDamage {
+                    zombie.userData?["nextDamage"] = elapsed + 0.78
+                    let damage: CGFloat = vehicleSpeed > 300 ? 9 : 5
+                    health = max(0,health-damage)
+                    FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
                 }
             }
         }
+
         if let hazard = (a?.name == "hazard" ? a : b?.name == "hazard" ? b : nil) {
-            hazard.name = "hazard-spent"
-            let damage = min(32, 12 + Int(contact.collisionImpulse / 180))
-            health = max(0, health - CGFloat(damage))
-            FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
-            emitDust(at:hazard.position,color:UIColor(red:0.72,green:0.42,blue:0.24,alpha:1))
-            hazard.removeFromParent()
-            hazards.removeAll { $0 === hazard }
+            let nextHit = hazard.userData?["nextHit"] as? Double ?? -1
+            let vehicleSpeed = abs(chassis?.physicsBody?.velocity.dx ?? 0)
+            if vehicleSpeed > 45 && elapsed >= nextHit {
+                hazard.userData?["nextHit"] = elapsed + 0.72
+                let damage = min(16,4+Int(vehicleSpeed/90))
+                health = max(0,health-CGFloat(damage))
+                FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
+                emitDust(at:hazard.position,color:UIColor(red:0.72,green:0.42,blue:0.24,alpha:1))
+                let direction: CGFloat = hazard.position.x >= (chassis?.position.x ?? 0) ? 1 : -1
+                hazard.physicsBody?.applyImpulse(CGVector(dx:direction*(45+vehicleSpeed*0.12),dy:24))
+                hazard.physicsBody?.applyAngularImpulse(direction*1.4)
+                lastVehicleImpact = elapsed
+            }
         }
-        if let pickup=(a?.name?.hasPrefix("pickup-")==true ? a : b?.name?.hasPrefix("pickup-")==true ? b : nil) {
-            let kind=Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
-            if kind==0 { fuel=min(maxFuel,fuel+28); fuelPickups += 1 }
-            if kind==1 { cash += 75; cashPickups += 1 }
-            if kind==2 { boost=min(100,boost+55); boostPickups += 1 }
-            if kind==3 { health=min(maxHealth,health+35) }
-            if kind==4 { hiddenKits += 1; cash += 250; fuel=min(maxFuel,fuel+18); health=min(maxHealth,health+15); boost=min(100,boost+25) }
+
+        if let pickup = (a?.name?.hasPrefix("pickup-") == true ? a : b?.name?.hasPrefix("pickup-") == true ? b : nil) {
+            let kind = Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
+            if kind == 0 { fuel = min(maxFuel,fuel+28); fuelPickups += 1 }
+            if kind == 1 { cash += 75; cashPickups += 1 }
+            if kind == 2 { boost = min(100,boost+55); boostPickups += 1 }
+            if kind == 3 { health = min(maxHealth,health+35) }
+            if kind == 4 { hiddenKits += 1; cash += 250; fuel = min(maxFuel,fuel+18); health = min(maxHealth,health+15); boost = min(100,boost+25) }
             FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
-            emitDust(at:pickup.position,color:.yellow); pickup.removeFromParent(); pickups.removeAll { $0 === pickup }
+            emitDust(at:pickup.position,color:.yellow)
+            pickup.removeFromParent()
+            pickups.removeAll { $0 === pickup }
         }
+    }
+
+    private func eliminateZombie(_ zombie: SKNode) {
+        kills += 1
+        FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
+        cash += Tune.hitCash
+        emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
+        zombie.removeFromParent()
+        zombies.removeAll { $0 === zombie }
     }
 
     private func emitDust(at point:CGPoint,color:UIColor) {
@@ -675,9 +793,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         isPaused = false
         input = Input()
         cameraNode.position = .zero
-        for joint in wheelJoints { physicsWorld.remove(joint) }
+        for pair in suspensionJoints { for joint in pair { physicsWorld.remove(joint) } }
         removeAllChildren()
-        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); debris.removeAll(); wheels.removeAll(); wheelJoints.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); debris.removeAll(); wheels.removeAll(); suspensionJoints.removeAll(); terrainBodies.removeAll()
         chassis = nil
         damageOverlay = nil
         hoodPanel = nil
