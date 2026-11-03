@@ -38,7 +38,7 @@ struct GameView: View {
                     stat("SPEED","\(speed) km/h",.white)
                     Spacer()
                     stat("CASH","$\(cash)",.yellow)
-                    Button { paused=true; scene.isPaused=true } label: { Image(systemName:"pause.fill").font(.title2).padding(12).background(.ultraThinMaterial,in:Circle()) }
+                    Button { paused=true; scene.input=DeadMileScene.Input(); scene.isPaused=true } label: { Image(systemName:"pause.fill").font(.title2).padding(12).background(.ultraThinMaterial,in:Circle()) }
                         .accessibilityLabel("Pause game")
                 }
                 HStack(spacing:7) {
@@ -84,11 +84,11 @@ struct GameView: View {
     }
 
     private var leftControlCluster: some View {
-        HStack(spacing:10) {
-            holdButton("BACK",icon:"arrow.uturn.backward",color:.orange) { scene.input.brake=$0 }
-            VStack(spacing:8) {
-                holdButton("TILT LEFT",icon:"rotate.left",color:.white) { scene.input.tiltLeft=$0 }
-                holdButton("TILT RIGHT",icon:"rotate.right",color:.white) { scene.input.tiltRight=$0 }
+        HStack(spacing:8) {
+            holdButton("BRAKE",icon:"arrow.uturn.backward",color:.orange) { scene.input.brake=$0 }
+            VStack(spacing:6) {
+                holdButton("TILT L",icon:"rotate.left",color:.white) { scene.input.tiltLeft=$0 }
+                holdButton("TILT R",icon:"rotate.right",color:.white) { scene.input.tiltRight=$0 }
             }
         }
     }
@@ -113,15 +113,31 @@ struct GameView: View {
             .accessibilityElement(children:.ignore).accessibilityLabel(title).accessibilityValue("\(Int(value)) percent")
     }
     private func holdButton(_ title:String,icon:String,color:Color,action:@escaping(Bool)->Void)->some View {
-        Image(systemName:icon).font(.system(size:23,weight:.black)).foregroundStyle(color)
-            .frame(width:68 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1),height:62 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1)).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:17))
-            .overlay(RoundedRectangle(cornerRadius:17).stroke(color.opacity(0.5),lineWidth:1))
-            .contentShape(RoundedRectangle(cornerRadius:17))
-            .accessibilityLabel(title)
-            .accessibilityHint("Press and hold to activate")
-            .accessibilityAddTraits(.isButton)
-            .gesture(DragGesture(minimumDistance:0).onChanged{_ in action(true)}.onEnded{_ in action(false)})
+        VStack(spacing:3) {
+            Image(systemName:icon)
+                .font(.system(size:21,weight:.black))
+            Text(title)
+                .font(.system(size:7,weight:.black,design:.rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .foregroundStyle(color)
+        .frame(width:58 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1),
+               height:55 * CGFloat(progress.controlScale) * (progress.largeHUD ? 1.18 : 1))
+        .background(
+            LinearGradient(colors:[Color(red:0.17,green:0.19,blue:0.21).opacity(0.94),Color(red:0.07,green:0.08,blue:0.10).opacity(0.96)],startPoint:.topLeading,endPoint:.bottomTrailing),
+            in:RoundedRectangle(cornerRadius:15)
+        )
+        .overlay(RoundedRectangle(cornerRadius:15).stroke(color.opacity(0.62),lineWidth:1.5))
+        .contentShape(RoundedRectangle(cornerRadius:15))
+        .accessibilityLabel(title)
+        .accessibilityHint("Press and hold to activate")
+        .accessibilityAddTraits(.isButton)
+        .onLongPressGesture(minimumDuration:0,maximumDistance:70,pressing:{ isPressing in
+            action(isPressing)
+        },perform:{})
     }
+
     private func overlay(title:String,subtitle:String,primary:String,secondary:String,primaryAction:@escaping()->Void,secondaryAction:@escaping()->Void)->some View {
         VStack(spacing:16) {
             Text(title).font(.system(size:38,weight:.black,design:.rounded))
