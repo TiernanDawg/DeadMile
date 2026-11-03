@@ -45,7 +45,7 @@ struct GameView: View {
                     meter("FUEL",fuel,.orange); meter("HULL",health,.red); meter("BOOST",boost,.cyan)
                 }
                 Spacer()
-            }.padding(.horizontal,22).padding(.top,10)
+            }.padding(.horizontal,18).padding(.top,8)
             VStack {
                 Spacer()
                 HStack(alignment:.bottom) {
@@ -104,14 +104,50 @@ struct GameView: View {
     }
 
     private func stat(_ title:String,_ value:String,_ color:Color)->some View {
-        VStack(alignment:.leading,spacing:2) { Text(title).font(.system(size:10,weight:.black,design:.rounded)).foregroundStyle(.white.opacity(0.6)); Text(value).font(.system(size:17,weight:.heavy,design:.rounded)).foregroundStyle(color) }
-            .padding(.horizontal,12).padding(.vertical,7).background(.black.opacity(0.42),in:RoundedRectangle(cornerRadius:10))
+        VStack(alignment:.leading,spacing:1) {
+            Text(title)
+                .font(.system(size:8,weight:.black,design:.rounded))
+                .foregroundStyle(.white.opacity(0.55))
+            Text(value)
+                .font(.system(size:14,weight:.heavy,design:.rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.horizontal,10)
+        .padding(.vertical,6)
+        .background(LinearGradient(colors:[Color.black.opacity(0.62),Color.black.opacity(0.34)],startPoint:.topLeading,endPoint:.bottomTrailing),in:RoundedRectangle(cornerRadius:9))
+        .overlay(RoundedRectangle(cornerRadius:9).stroke(.white.opacity(0.09),lineWidth:1))
     }
+
     private func meter(_ title:String,_ value:CGFloat,_ color:Color)->some View {
-        VStack(alignment:.leading,spacing:3) { Text(title).font(.system(size:9,weight:.black)); GeometryReader { geo in ZStack(alignment:.leading) { Capsule().fill(.white.opacity(0.18)); Capsule().fill(color).frame(width:geo.size.width*max(0,min(1,value/100))) } }.frame(height:7) }
-            .frame(maxWidth:150).foregroundStyle(.white).padding(8).background(.black.opacity(0.35),in:RoundedRectangle(cornerRadius:8))
-            .accessibilityElement(children:.ignore).accessibilityLabel(title).accessibilityValue("\(Int(value)) percent")
+        VStack(alignment:.leading,spacing:4) {
+            HStack {
+                Text(title).font(.system(size:8,weight:.black,design:.rounded))
+                Spacer(minLength:2)
+                Text("\(Int(max(0,min(100,value))))%")
+                    .font(.system(size:8,weight:.bold,design:.monospaced))
+                    .foregroundStyle(.white.opacity(0.68))
+            }
+            GeometryReader { geo in
+                ZStack(alignment:.leading) {
+                    Capsule().fill(.white.opacity(0.14))
+                    Capsule().fill(LinearGradient(colors:[color,color.opacity(0.68)],startPoint:.leading,endPoint:.trailing))
+                        .frame(width:geo.size.width*max(0,min(1,value/100)))
+                }
+            }.frame(height:6)
+        }
+        .frame(maxWidth:118)
+        .foregroundStyle(.white)
+        .padding(.horizontal,8)
+        .padding(.vertical,7)
+        .background(.black.opacity(0.42),in:RoundedRectangle(cornerRadius:9))
+        .overlay(RoundedRectangle(cornerRadius:9).stroke(.white.opacity(0.08),lineWidth:1))
+        .accessibilityElement(children:.ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(Int(value)) percent")
     }
+
     private func holdButton(_ title:String,icon:String,color:Color,action:@escaping(Bool)->Void)->some View {
         VStack(spacing:3) {
             Image(systemName:icon)
