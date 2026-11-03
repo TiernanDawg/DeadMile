@@ -274,11 +274,11 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         let car=SKSpriteNode(texture:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id),size:CGSize(width:width,height:65))
-        car.position=CGPoint(x:150,y:155); car.zPosition=10
+        car.position=CGPoint(x:150,y:roadSurfaceY(at:150)+42); car.zPosition=10
         car.physicsBody=SKPhysicsBody(rectangleOf:CGSize(width:width*0.82,height:35))
         car.physicsBody?.mass=CGFloat(vehicle.mass*4.2)
         car.physicsBody?.allowsRotation=true
-        car.physicsBody?.linearDamping=0.08
+        car.physicsBody?.linearDamping=0.12
         car.physicsBody?.angularDamping=0.42
         car.physicsBody?.friction=0.9
         car.physicsBody?.categoryBitMask=1
@@ -326,13 +326,15 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             wheel.position=CGPoint(x:car.position.x+x,y:car.position.y-26); wheel.zPosition=11
             wheel.physicsBody=SKPhysicsBody(circleOfRadius:15)
             wheel.physicsBody?.mass=CGFloat(vehicle.mass*0.45)
-            wheel.physicsBody?.friction=1.8
+            wheel.physicsBody?.friction=2.4
+            wheel.physicsBody?.linearDamping=0.18
             wheel.physicsBody?.restitution=0.02
             wheel.physicsBody?.allowsRotation=true
             addChild(wheel); wheels.append(wheel)
             if let a=car.physicsBody, let b=wheel.physicsBody {
                 let joint=SKPhysicsJointPin.joint(withBodyA:a,bodyB:b,anchor:wheel.position)
-                joint.frictionTorque=8
+                joint.rotationSpeed = 0
+                joint.frictionTorque = 42
                 physicsWorld.add(joint)
                 wheelJoints.append(joint)
             }
