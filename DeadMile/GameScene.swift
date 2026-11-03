@@ -19,6 +19,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var wheels: [SKSpriteNode] = []
     private var wheelJoints: [SKPhysicsJoint] = []
     private var damageOverlay: SKShapeNode?
+    private var hoodPanel: SKShapeNode?
+    private var debris: [SKNode] = []
+    private var panelDetached = false
     private var detachedWheel = false
     private var cameraNode = SKCameraNode()
     private var fuel: CGFloat = Tune.baseFuel
@@ -148,6 +151,14 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         damage.zPosition = 8
         car.addChild(damage)
         damageOverlay = damage
+        let hood = SKShapeNode(rectOf:CGSize(width:38,height:8),cornerRadius:2)
+        hood.fillColor = UIColor(white:0.42,alpha:1)
+        hood.strokeColor = UIColor(white:0.8,alpha:1)
+        hood.lineWidth = 1.5
+        hood.position = CGPoint(x:-42,y:27)
+        hood.zPosition = 5
+        car.addChild(hood)
+        hoodPanel = hood
         if upgradeTiers["weapon",default:0] > 0 {
             let mount = SKShapeNode(rectOf:CGSize(width:34,height:10),cornerRadius:3)
             mount.fillColor = UIColor(white:0.22,alpha:1)
@@ -264,6 +275,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         projectiles.removeAll { $0.parent == nil }
         zombies.removeAll { $0.parent == nil }
         for hazard in hazards where hazard.position.x < cameraNode.position.x-850 { hazard.removeFromParent() }
+        for item in debris where item.position.x < cameraNode.position.x-850 { item.removeFromParent() }
+        debris.removeAll { $0.parent == nil }
         hazards.removeAll { $0.parent == nil }
         cameraNode.position=CGPoint(x:max(400,car.position.x+Tune.cameraLookAhead),y:max(230,car.position.y+115))
         for node in children where node.name?.hasPrefix("parallax-") == true {
@@ -275,6 +288,20 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         }
         if speed < Tune.lowSpeedEndThreshold && fuel <= 0 { lowSpeedTime += dt } else { lowSpeedTime=0 }
         damageOverlay?.alpha = max(0,min(0.9,1 - health / max(1,maxHealth)))
+        if !panelDetached && health <= maxHealth * 0.58, let panel = hoodPanel, let car = chassis {
+            panel.position = car.convert(panel.position, to:self)
+            panel.removeFromParent()
+            panel.zPosition = 14
+            panel.physicsBody = SKPhysicsBody(rectangleOf:CGSize(width:38,height:8))
+            panel.physicsBody?.mass = 0.35
+            panel.physicsBody?.isDynamic = true
+            panel.physicsBody?.allowsRotation = true
+            panel.physicsBody?.velocity = car.physicsBody?.velocity ?? .zero
+            addChild(panel)
+            debris.append(panel)
+            hoodPanel = nil
+            panelDetached = true
+        }
         if !detachedWheel && health <= maxHealth * 0.28, let joint = wheelJoints.popLast() {
             physicsWorld.remove(joint)
             detachedWheel = true
@@ -446,9 +473,11 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         cameraNode.position = .zero
         for joint in wheelJoints { physicsWorld.remove(joint) }
         removeAllChildren()
-        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); wheels.removeAll(); wheelJoints.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); debris.removeAll(); wheels.removeAll(); wheelJoints.removeAll(); terrainBodies.removeAll()
         chassis = nil
         damageOverlay = nil
+        hoodPanel = nil
+        panelDetached = false
         detachedWheel = false
         maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
         fuel = maxFuel
