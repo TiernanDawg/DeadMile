@@ -38,7 +38,7 @@ struct GameView: View {
                     stat("SPEED","\(speed) km/h",.white)
                     Spacer()
                     stat("CASH","$\(cash)",.yellow)
-                    Button { paused=true; scene.input=DeadMileScene.Input(); scene.isPaused=true } label: { Image(systemName:"pause.fill").font(.title2).padding(12).background(.ultraThinMaterial,in:Circle()) }
+                    Button { paused=true; scene.input=DeadMileScene.Input(); FeedbackService.shared.stopEngine(); scene.isPaused=true } label: { Image(systemName:"pause.fill").font(.title2).padding(12).background(.ultraThinMaterial,in:Circle()) }
                         .accessibilityLabel("Pause game")
                 }
                 HStack(spacing:7) {
@@ -77,10 +77,12 @@ struct GameView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase != .active && result == nil {
                 paused = true
+                scene.input = DeadMileScene.Input()
+                FeedbackService.shared.stopEngine()
                 scene.isPaused = true
             }
         }
-        .onDisappear { FeedbackService.shared.stopEngine(); progress.save() }
+        .onDisappear { scene.input = DeadMileScene.Input(); FeedbackService.shared.stopEngine(); progress.save() }
     }
 
     private var leftControlCluster: some View {
