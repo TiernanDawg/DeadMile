@@ -5,9 +5,9 @@ import CoreGraphics
 enum Tune {
     static let gravity: CGFloat = -420
     static let maxForwardSpeed: CGFloat = 520
-    static let wheelDriveTorque: CGFloat = 1300
-    static let wheelReverseTorque: CGFloat = 420
-    static let maxWheelAngularSpeed: CGFloat = 30
+    static let wheelDriveTorque: CGFloat = 9000
+    static let wheelReverseTorque: CGFloat = 2200
+    static let maxWheelAngularSpeed: CGFloat = 36
     static let wheelBrakeDamping: CGFloat = 70
     static let brakeForce: CGFloat = 1900
     static let airTorque: CGFloat = 7.2

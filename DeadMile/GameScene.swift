@@ -28,7 +28,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     var upgradeTiers: [String:Int] = [:]
     private var chassis: SKSpriteNode?
     private var wheels: [SKSpriteNode] = []
-    private var suspensionJoints: [[SKPhysicsJoint]] = []
+    private var wheelAxles: [SKPhysicsJointPin] = []
     private var damageOverlay: SKShapeNode?
     private var hoodPanel: SKShapeNode?
     private var debris: [SKNode] = []
@@ -367,29 +367,15 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             wheels.append(wheel)
 
             if let chassisBody = car.physicsBody, let tireBody = wheel.physicsBody {
-                let slide = SKPhysicsJointSliding.joint(
+                let axle = SKPhysicsJointPin.joint(
                     withBodyA:chassisBody,
                     bodyB:tireBody,
-                    anchor:wheel.position,
-                    axis:CGVector(dx:0,dy:1)
+                    anchor:wheel.position
                 )
-                slide.shouldEnableLimits = true
-                slide.lowerDistanceLimit = -8
-                slide.upperDistanceLimit = 14
-
-                let springAnchor = CGPoint(x:car.position.x+x,y:car.position.y-13)
-                let spring = SKPhysicsJointSpring.joint(
-                    withBodyA:chassisBody,
-                    bodyB:tireBody,
-                    anchorA:springAnchor,
-                    anchorB:wheel.position
-                )
-                spring.frequency = 4.2
-                spring.damping = 0.92
-
-                physicsWorld.add(slide)
-                physicsWorld.add(spring)
-                suspensionJoints.append([slide,spring])
+                axle.frictionTorque = 0
+                axle.rotationSpeed = 0
+                physicsWorld.add(axle)
+                wheelAxles.append(axle)
             }
         }
     }
@@ -542,8 +528,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             hoodPanel = nil
             panelDetached = true
         }
-        if !detachedWheel && health <= maxHealth * 0.28, let joints = suspensionJoints.popLast() {
-            for joint in joints { physicsWorld.remove(joint) }
+        if !detachedWheel && health <= maxHealth * 0.28, let axle = wheelAxles.popLast() {
+            physicsWorld.remove(axle)
             detachedWheel = true
             wheels.last?.name = "detached-wheel"
             emitDust(at:car.position,color:.orange)
@@ -778,9 +764,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         isPaused = false
         input = Input()
         cameraNode.position = .zero
-        for pair in suspensionJoints { for joint in pair { physicsWorld.remove(joint) } }
+        for axle in wheelAxles { physicsWorld.remove(axle) }
         removeAllChildren()
-        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); debris.removeAll(); wheels.removeAll(); suspensionJoints.removeAll(); terrainBodies.removeAll()
+        zombies.removeAll(); projectiles.removeAll(); pickups.removeAll(); hazards.removeAll(); debris.removeAll(); wheels.removeAll(); wheelAxles.removeAll(); terrainBodies.removeAll()
         chassis = nil
         damageOverlay = nil
         hoodPanel = nil
