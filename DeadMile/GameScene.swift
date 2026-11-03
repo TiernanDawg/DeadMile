@@ -2,6 +2,16 @@
 @preconcurrency import GameController
 import UIKit
 
+private enum CollisionLayer {
+    static let vehicle: UInt32 = 1
+    static let infected: UInt32 = 2
+    static let pickup: UInt32 = 4
+    static let hazard: UInt32 = 8
+    static let projectile: UInt32 = 16
+    static let terrain: UInt32 = 32
+    static let wheel: UInt32 = 64
+}
+
 @MainActor
 final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false; var fire=false }
@@ -261,6 +271,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
 
         let physicsGround = SKNode()
         physicsGround.physicsBody = SKPhysicsBody(edgeChainFrom:surfacePath)
+        physicsGround.physicsBody?.categoryBitMask = CollisionLayer.terrain
+        physicsGround.physicsBody?.collisionBitMask = CollisionLayer.vehicle | CollisionLayer.wheel
         physicsGround.physicsBody?.friction = 1.7
         physicsGround.physicsBody?.restitution = 0.015
         addChild(physicsGround)
@@ -281,9 +293,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         car.physicsBody?.linearDamping=0.12
         car.physicsBody?.angularDamping=0.42
         car.physicsBody?.friction=0.9
-        car.physicsBody?.categoryBitMask=1
-        car.physicsBody?.contactTestBitMask=2 | 4 | 8
-        car.physicsBody?.collisionBitMask=UInt32.max
+        car.physicsBody?.categoryBitMask=CollisionLayer.vehicle
+        car.physicsBody?.contactTestBitMask=CollisionLayer.infected | CollisionLayer.pickup | CollisionLayer.hazard
+        car.physicsBody?.collisionBitMask=CollisionLayer.terrain | CollisionLayer.infected | CollisionLayer.hazard
         addChild(car); chassis=car
         let damagePath = CGMutablePath()
         damagePath.move(to:CGPoint(x:-42,y:12))
@@ -330,6 +342,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             wheel.physicsBody?.linearDamping=0.18
             wheel.physicsBody?.restitution=0.02
             wheel.physicsBody?.allowsRotation=true
+            wheel.physicsBody?.categoryBitMask=CollisionLayer.wheel
+            wheel.physicsBody?.collisionBitMask=CollisionLayer.terrain
+            wheel.physicsBody?.contactTestBitMask=0
             addChild(wheel); wheels.append(wheel)
             if let a=car.physicsBody, let b=wheel.physicsBody {
                 let joint=SKPhysicsJointPin.joint(withBodyA:a,bodyB:b,anchor:wheel.position)
@@ -500,8 +515,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         body.isDynamic = true
         body.affectedByGravity = false
         body.allowsRotation = false
-        body.categoryBitMask = 16
-        body.contactTestBitMask = 2
+        body.categoryBitMask = CollisionLayer.projectile
+        body.contactTestBitMask = CollisionLayer.infected
         body.collisionBitMask = 0
         bullet.physicsBody = body
         addChild(bullet)
@@ -531,9 +546,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         zombie.physicsBody?.angularDamping=0.8
         zombie.physicsBody?.isDynamic=true
         zombie.physicsBody?.allowsRotation=true
-        zombie.physicsBody?.categoryBitMask=2
-        zombie.physicsBody?.contactTestBitMask=1
-        zombie.physicsBody?.collisionBitMask=1
+        zombie.physicsBody?.categoryBitMask=CollisionLayer.infected
+        zombie.physicsBody?.contactTestBitMask=CollisionLayer.vehicle
+        zombie.physicsBody?.collisionBitMask=CollisionLayer.vehicle | CollisionLayer.terrain
         addChild(zombie); zombies.append(zombie)
     }
 
@@ -571,9 +586,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             ? SKPhysicsBody(circleOfRadius:25)
             : SKPhysicsBody(rectangleOf:CGSize(width:kind == 2 ? 64 : 54,height:kind == 2 ? 38 : 38))
         node.physicsBody?.isDynamic = false
-        node.physicsBody?.categoryBitMask = 8
-        node.physicsBody?.contactTestBitMask = 1
-        node.physicsBody?.collisionBitMask = 1
+        node.physicsBody?.categoryBitMask = CollisionLayer.hazard
+        node.physicsBody?.contactTestBitMask = CollisionLayer.vehicle
+        node.physicsBody?.collisionBitMask = CollisionLayer.vehicle
         addChild(node)
         hazards.append(node)
     }
@@ -586,7 +601,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         node.lineWidth = 3
         node.position=point; node.zPosition=12; node.name="pickup-\(kind)"
         node.physicsBody=SKPhysicsBody(circleOfRadius:15); node.physicsBody?.isDynamic=false
-        node.physicsBody?.categoryBitMask=4; node.physicsBody?.contactTestBitMask=1
+        node.physicsBody?.categoryBitMask=CollisionLayer.pickup; node.physicsBody?.contactTestBitMask=CollisionLayer.vehicle; node.physicsBody?.collisionBitMask=0
         addChild(node); pickups.append(node)
     }
 
