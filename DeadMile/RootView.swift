@@ -56,6 +56,7 @@ struct RootView: View {
         .onChange(of: progress.audioEnabled) { _, _ in progress.save() }
         .onChange(of: progress.hapticsEnabled) { _, _ in progress.save() }
         .onChange(of: progress.largeHUD) { _, _ in progress.save() }
+        .onChange(of: progress.leftHandedControls) { _, _ in progress.save() }
         .onChange(of: progress.controlScale) { _, _ in progress.save() }
         .onChange(of: progress.selectedVehicle) { _, _ in progress.save() }
         .sheet(isPresented: $showShare) {
@@ -222,6 +223,7 @@ struct RootView: View {
             Toggle("Game audio",isOn:$progress.audioEnabled).tint(.orange)
             Toggle("Haptic feedback",isOn:$progress.hapticsEnabled).tint(.orange)
             Toggle("Large HUD",isOn:$progress.largeHUD).tint(.orange)
+            Toggle("Left-handed controls",isOn:$progress.leftHandedControls).tint(.orange)
             VStack(alignment:.leading) { Text("Control size");Slider(value:$progress.controlScale,in:0.8...1.3) }
             Button("RESET PROGRESS",role:.destructive){showReset=true}
             Button("PREPARE SAVE EXPORT") { exportSave() }.buttonStyle(SecondaryStyle())
