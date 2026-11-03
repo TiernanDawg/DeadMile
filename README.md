@@ -22,7 +22,7 @@ GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it 
 
 ## Controls
 
-Hold gas, reverse/brake, air tilt, and boost. Fuel pickups refill the tank; cash bundles and infected kills pay out.
+Touch controls support adjustable size and mirrored left-handed placement. Compatible external controllers use right trigger for gas, left trigger for brake, left stick for tilt, B for boost, and A for fire. Fuel pickups refill the tank; cash bundles and infected kills pay out.
 
 ## QA status and remaining work
 
