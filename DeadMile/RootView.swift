@@ -144,35 +144,101 @@ struct RootView: View {
         }
     }
 
-    private var garage:some View {
-        VStack(spacing:12) {
-            Text("MOTOR POOL").font(.system(size:30,weight:.black,design:.rounded))
-            TabView(selection:$garageVehicle) {
-                ForEach(VehicleSpec.roster) { spec in
-                    VStack(spacing:8) {
-                        Image(uiImage:UIImage(cgImage:ArtFactory.vehicle(colorHex:spec.color,style:spec.id).cgImage()))
-                            .resizable().scaledToFit().frame(maxWidth:360,maxHeight:115)
-                        Text(spec.name).font(.system(size:21,weight:.black,design:.rounded))
-                        HStack { statBar("POWER",spec.power/3.1);statBar("ARMOR",spec.armor/4.5);statBar("FUEL",spec.fuel/230) }
-                        if progress.unlockedVehicles.contains(spec.id) {
-                            Button(progress.selectedVehicle == spec.id ? "SELECTED" : "SELECT VEHICLE") {
-                                progress.selectedVehicle = spec.id
-                                progress.save()
-                            }.buttonStyle(PrimaryStyle()).disabled(progress.selectedVehicle == spec.id)
-                        } else {
-                            Button("UNLOCK  $\(spec.price)") { _=progress.buyVehicle(spec.id) }.buttonStyle(PrimaryStyle()).disabled(progress.cash<spec.price)
+    private var garage: some View {
+        GeometryReader { geometry in
+            let spec = VehicleSpec.roster[min(max(garageVehicle,0),VehicleSpec.roster.count-1)]
+            ScrollView(.vertical) {
+                VStack(spacing:10) {
+                    HStack(alignment:.firstTextBaseline) {
+                        Text("MOTOR POOL")
+                            .font(.system(size:25,weight:.black,design:.rounded))
+                            .tracking(1.5)
+                        Spacer()
+                        Text(String(format:"VEHICLE %02d / 10",garageVehicle+1))
+                            .font(.system(size:10,weight:.black,design:.monospaced))
+                            .foregroundStyle(.orange)
+                    }
+
+                    HStack(spacing:14) {
+                        TabView(selection:$garageVehicle) {
+                            ForEach(VehicleSpec.roster) { vehicle in
+                                Image(uiImage:UIImage(cgImage:ArtFactory.vehicle(colorHex:vehicle.color,style:vehicle.id).cgImage()))
+                                    .resizable()
+                                    .scaledToFit()
+                                    .padding(.horizontal,14)
+                                    .padding(.vertical,22)
+                                    .tag(vehicle.id)
+                            }
                         }
-                    }.tag(spec.id)
+                        .tabViewStyle(.page(indexDisplayMode:.never))
+                        .frame(width:geometry.size.width*0.50,height:min(166,max(130,geometry.size.height*0.48)))
+                        .background(
+                            LinearGradient(colors:[Color(red:0.22,green:0.17,blue:0.15),Color(red:0.08,green:0.09,blue:0.11)],startPoint:.topLeading,endPoint:.bottomTrailing),
+                            in:RoundedRectangle(cornerRadius:18)
+                        )
+                        .overlay(RoundedRectangle(cornerRadius:18).stroke(.white.opacity(0.13),lineWidth:1))
+
+                        VStack(alignment:.leading,spacing:9) {
+                            HStack {
+                                Button {
+                                    garageVehicle = max(0,garageVehicle-1)
+                                } label: {
+                                    Image(systemName:"chevron.left").font(.system(size:12,weight:.black))
+                                }.disabled(garageVehicle == 0)
+                                Spacer()
+                                Button {
+                                    garageVehicle = min(9,garageVehicle+1)
+                                } label: {
+                                    Image(systemName:"chevron.right").font(.system(size:12,weight:.black))
+                                }.disabled(garageVehicle == 9)
+                            }.foregroundStyle(.orange)
+
+                            Text(spec.name)
+                                .font(.system(size:21,weight:.black,design:.rounded))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                            HStack(spacing:6) {
+                                statBar("POWER",spec.power/3.1)
+                                statBar("ARMOR",spec.armor/4.5)
+                                statBar("FUEL",spec.fuel/230)
+                            }
+                            if progress.unlockedVehicles.contains(spec.id) {
+                                Button(progress.selectedVehicle == spec.id ? "EQUIPPED" : "EQUIP VEHICLE") {
+                                    progress.selectedVehicle = spec.id
+                                    progress.save()
+                                }.buttonStyle(PrimaryStyle()).disabled(progress.selectedVehicle == spec.id)
+                            } else {
+                                Button("UNLOCK  ·  $\(spec.price)") {
+                                    _ = progress.buyVehicle(spec.id)
+                                }.buttonStyle(PrimaryStyle()).disabled(progress.cash < spec.price)
+                            }
+                        }
+                        .frame(maxWidth:.infinity,alignment:.leading)
+                        .padding(.vertical,8)
+                    }
+
+                    HStack(spacing:8) {
+                        upgradeButton("ENGINE","engine","Acceleration")
+                        upgradeButton("FUEL","fuel","Run time")
+                        upgradeButton("ARMOR","armor","Impact strength")
+                        upgradeButton("WEAPON","weapon","Mounted gun")
+                    }
+
+                    HStack {
+                        Text("NEXT RECOMMENDATION")
+                            .font(.system(size:9,weight:.black,design:.rounded))
+                            .foregroundStyle(.white.opacity(0.5))
+                        Spacer()
+                        Text(progress.tier("engine") < 2 ? "ENGINE" : progress.tier("fuel") < 2 ? "FUEL TANK" : progress.tier("armor") < 2 ? "ARMOR" : "WEAPON")
+                            .font(.system(size:11,weight:.black,design:.rounded))
+                            .foregroundStyle(.orange)
+                    }
                 }
-            }.tabViewStyle(.page(indexDisplayMode:.always)).frame(height:235)
-                .onAppear { garageVehicle = progress.selectedVehicle }
-            HStack(spacing:8) {
-                upgradeButton("ENGINE","engine", "Power and acceleration")
-                upgradeButton("FUEL","fuel", "Longer runs")
-                upgradeButton("ARMOR","armor", "Survive heavy impacts")
-                upgradeButton("WEAPON","weapon", "Mounted gun")
+                .padding(.horizontal,8)
+                .padding(.vertical,6)
             }
-            Text("Recommended: \(progress.tier("engine") < 2 ? "ENGINE" : progress.tier("fuel") < 2 ? "FUEL TANK" : progress.tier("armor") < 2 ? "ARMOR" : "WEAPON")").font(.system(size:11,weight:.bold)).foregroundStyle(.orange)
+            .scrollIndicators(.hidden)
+            .onAppear { garageVehicle = progress.selectedVehicle }
         }
     }
 
