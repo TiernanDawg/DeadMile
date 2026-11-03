@@ -14,7 +14,7 @@ GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it 
 
 ## Included
 
-- SpriteKit driving scene with dynamic chassis and pin-jointed wheels, seeded terrain profile, ten zombie archetypes with differentiated movement/weight, upgrade-powered mounted weapons, projectile combat, zombie contact handling, vehicle damage and detachable wheel behavior, road hazards, pickups, fuel, health, boost, and distance/kills payout.
+- SpriteKit driving scene with dynamic chassis and pin-jointed wheels, seeded terrain profile, ten zombie archetypes with differentiated movement/weight, brute/armored durability and toxic-contact variants, upgrade-powered mounted weapons, projectile combat, zombie contact handling, vehicle damage with detachable hood and wheel debris, road hazards, pickups, fuel, health, boost, and distance/kills payout.
 - Procedural Core Graphics vehicle and zombie sprites.
 - Ten biome definitions with three increasing area lengths each; area distances are scaled consistently, scenery loops through long runs, zombies pursue the vehicle with basic separation behavior, three road-hazard types deal impact damage, scenery loops through long runs, and fuel/cash/boost/repair supplies continue to spawn.
 - Ten vehicle definitions with working power/fuel/armor stats, per-vehicle upgrade tiers, versioned local saves with validated JSON import/export and sharing, local-time daily supply claims, settings, achievements, and hidden debug panel.
