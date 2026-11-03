@@ -63,7 +63,6 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var lastHUD: TimeInterval = 0
     private var terrainBodies: [SKNode] = []
     private var randomSeed: UInt64 = 0xDEAD_BEEF
-    private var lastVehicleImpact: TimeInterval = -10
 
     override func didMove(to view: SKView) {
         backgroundColor = UIColor(red:0.12,green:0.10,blue:0.12,alpha:1)
@@ -423,18 +422,6 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         FeedbackService.shared.updateEngine(speed:speed,audio:audioEnabled,biome:level)
         let engine=CGFloat(vehicle.power)*(1+CGFloat(upgradeTiers["engine",default:0])*0.18)
         let reverseDrive = brakePressed && speed < 35 && fuel > 0
-        for joint in wheelJoints {
-            if gasPressed && fuel > 0 {
-                joint.rotationSpeed = -min(46,(speed+135)/15)
-                joint.frictionTorque = 58 * engine
-            } else if reverseDrive {
-                joint.rotationSpeed = 8.5
-                joint.frictionTorque = 46
-            } else {
-                joint.rotationSpeed = 0
-                joint.frictionTorque = 72
-            }
-        }
         if gasPressed && fuel > 0 {
             let torquePerWheel = Tune.wheelDriveTorque * engine / CGFloat(max(1,wheels.count))
             for wheel in wheels {
@@ -662,7 +649,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         node.name = "hazard"
         let body: SKPhysicsBody = kind == 1 ? SKPhysicsBody(circleOfRadius:25) : SKPhysicsBody(rectangleOf:bodySize)
         body.isDynamic = true
-        body.mass = [6.0,15.0,9.0][kind]
+        body.mass = CGFloat([6.0,15.0,9.0][kind])
         body.friction = kind == 1 ? 1.9 : 1.25
         body.linearDamping = 0.08
         body.angularDamping = 0.12
@@ -708,7 +695,6 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                     if let sprite = zombie as? SKSpriteNode {
                         sprite.color = .red
                         sprite.colorBlendFactor = min(0.75,0.25+CGFloat(3-remaining)*0.18)
-                        sprite.run(.sequence([.colorize(withColorBlendFactor:0.05,duration:0.16)]))
                     }
                     emitDust(at:zombie.position,color:.orange)
                 }
@@ -752,7 +738,6 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 let direction: CGFloat = hazard.position.x >= (chassis?.position.x ?? 0) ? 1 : -1
                 hazard.physicsBody?.applyImpulse(CGVector(dx:direction*(45+vehicleSpeed*0.12),dy:24))
                 hazard.physicsBody?.applyAngularImpulse(direction*1.4)
-                lastVehicleImpact = elapsed
             }
         }
 

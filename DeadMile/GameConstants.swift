@@ -4,9 +4,12 @@ import CoreGraphics
 // Central tuning sheet. Keep gameplay and economy adjustments here.
 enum Tune {
     static let gravity: CGFloat = -420
-    static let maxForwardSpeed: CGFloat = 670
-    static let engineForce: CGFloat = 760
-    static let reverseForce: CGFloat = 980
+    static let maxForwardSpeed: CGFloat = 520
+    static let wheelDriveTorque: CGFloat = 1300
+    static let wheelReverseTorque: CGFloat = 420
+    static let maxWheelAngularSpeed: CGFloat = 30
+    static let wheelBrakeDamping: CGFloat = 70
+    static let brakeForce: CGFloat = 1900
     static let airTorque: CGFloat = 7.2
     static let fuelBurnPerSecond: CGFloat = 0.48
     static let baseFuel: CGFloat = 100
