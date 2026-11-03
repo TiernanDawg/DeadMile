@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#171a2b"/><stop offset=".48" stop-color="#4a2b3c"/><stop offset=".77" stop-color="#df5738"/><stop offset="1" stop-color="#f49a4c"/></linearGradient>
+  <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff0a2"/><stop offset="1" stop-color="#f47a3d"/></linearGradient>
+  <linearGradient id="distant" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#68404a"/><stop offset="1" stop-color="#472b35"/></linearGradient>
+  <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#332733"/><stop offset="1" stop-color="#171a22"/></linearGradient>
+  <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29242a"/><stop offset="1" stop-color="#090e15"/></linearGradient>
+  <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#30333a"/><stop offset="1" stop-color="#11161c"/></linearGradient>
+  <radialGradient id="glow"><stop stop-color="#ffb15f" stop-opacity=".75"/><stop offset="1" stop-color="#ff8b4b" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1600" height="700" fill="url(#sky)"/>
+<ellipse cx="805" cy="365" rx="470" ry="270" fill="url(#glow)"/>
+<circle cx="800" cy="390" r="126" fill="url(#sun)" opacity=".98"/>
+<path d="M0 255 Q120 210 250 255 T520 245 T820 250 T1130 230 T1600 260 L1600 310 Q1440 286 1310 310 T1040 302 T770 310 T430 300 T0 320Z" fill="#29283a" opacity=".7"/>
+<path d="M0 130 Q110 90 230 140 T480 132 T720 115 T1010 145 T1270 120 T1600 142 L1600 182 Q1450 155 1330 180 T1040 173 T780 178 T500 176 T0 190Z" fill="#1c2031" opacity=".56"/>
+<path d="M0 415 L90 326 142 357 240 266 292 318 356 295 440 387 512 331 596 359 685 285 750 330 815 265 875 323 960 276 1040 344 1115 296 1184 342 1260 274 1333 317 1401 285 1490 350 1560 315 1600 345 1600 520 0 520Z" fill="url(#distant)" opacity=".96"/>
+<path d="M0 468 L98 400 175 421 245 361 310 425 403 382 480 448 570 395 652 435 740 374 818 440 914 391 1004 442 1080 375 1168 428 1255 385 1347 439 1455 373 1540 420 1600 394 1600 560 0 560Z" fill="#302833"/>
+<!-- distant industrial skyline -->
+<g fill="#24232d">
+  <rect x="690" y="330" width="78" height="100"/><rect x="780" y="306" width="46" height="124"/>
+  <rect x="839" y="340" width="80" height="90"/><rect x="930" y="292" width="70" height="138"/>
+  <rect x="1010" y="350" width="90" height="80"/><rect x="1110" y="315" width="62" height="115"/>
+  <rect x="1180" y="344" width="130" height="86"/>
+  <path d="M715 330 V280 H744 V330Z M950 294 V190 H971 V294Z M1007 350 V250 H1028 V350Z"/>
+  <path d="M700 281 H754 V291 H700Z M942 190 H980 V201 H942Z M999 250 H1036 V261 H999Z"/>
+</g>
+<g fill="none" stroke="#201f29" stroke-width="10">
+  <path d="M961 190 C930 157 1012 144 979 98 C951 62 1021 58 1003 17" opacity=".65"/>
+  <path d="M1020 252 C1060 218 1018 192 1060 165" opacity=".5"/>
+</g>
+<!-- broken overpass and wrecks -->
+<g>
+  <path d="M0 430 L520 430 558 452 545 465 0 460Z" fill="#171b23"/>
+  <path d="M0 423 L480 423 530 439" fill="none" stroke="#4e4140" stroke-width="12"/>
+  <path d="M88 440 V570 M260 438 V558 M435 444 V548" stroke="#181b23" stroke-width="26"/>
+  <path d="M515 432 L573 410 625 420 635 434" fill="none" stroke="#171a22" stroke-width="18"/>
+  <path d="M560 432 L612 455 M590 426 L650 438" stroke="#10151d" stroke-width="9"/>
+</g>
+<!-- ruined gas station and water tower -->
+<g fill="#151920">
+  <path d="M1090 414 L1114 377 1460 377 1490 412Z"/>
+  <path d="M1110 410 V500 M1190 405 V510 M1435 404 V500 M1480 407 V492" stroke="#151920" stroke-width="18"/>
+  <path d="M1145 416 H1440 V485 H1145Z"/>
+  <path d="M1170 428 H1240 V477 H1170Z M1270 428 H1340 V477 H1270Z M1370 428 H1420 V477 H1370Z" fill="#25242d"/>
+  <path d="M1320 370 L1320 212 M1290 212 H1350 M1300 212 V193 Q1320 180 1340 193 V212" stroke="#151920" stroke-width="12" fill="none"/>
+  <ellipse cx="1320" cy="191" rx="36" ry="12" fill="#151920"/>
+  <path d="M1279 197 V260 M1361 197 V260" stroke="#151920" stroke-width="7"/>
+  <path d="M1275 257 H1365" stroke="#151920" stroke-width="10"/>
+</g>
+<!-- utility poles -->
+<g fill="none" stroke="#171a22" stroke-width="8">
+ <path d="M580 270 V503 M553 305 H610 M570 292 L548 312 M600 296 L622 319"/>
+ <path d="M1485 265 V505 M1455 292 H1515 M1470 280 L1447 301 M1503 280 L1528 301"/>
+</g>
+<g fill="none" stroke="#171a22" stroke-width="3">
+ <path d="M580 285 Q710 320 810 275 T1040 265 T1320 280 T1485 290"/>
+ <path d="M610 310 Q740 338 900 301 T1170 296 T1485 306"/>
+</g>
+<!-- dead trees -->
+<g fill="none" stroke="#10151b" stroke-width="10" stroke-linecap="round">
+ <path d="M135 535 L140 400 M140 435 L100 375 M140 453 L188 393 M120 407 L87 402 M165 420 L196 413"/>
+ <path d="M920 535 L926 415 M926 450 L888 400 M926 465 L970 410 M903 425 L875 421"/>
+ <path d="M1540 535 L1532 405 M1532 442 L1497 395 M1532 462 L1570 415"/>
+</g>
+<!-- foreground terrain -->
+<path d="M0 490 Q260 462 460 490 T900 475 T1290 491 T1600 470 L1600 700 H0Z" fill="url(#ground)"/>
+<path d="M0 518 Q290 488 540 510 T1050 502 T1600 510" fill="none" stroke="#6b3c34" stroke-width="7" opacity=".8"/>
+<!-- asphalt road and broken lane -->
+<path d="M0 565 Q340 535 640 560 T1210 548 T1600 559 L1600 700 H0Z" fill="url(#road)"/>
+<path d="M0 562 Q340 532 640 557 T1210 545 T1600 556" fill="none" stroke="#e17a43" stroke-width="7" opacity=".9"/>
+<path d="M0 630 Q400 605 720 630 T1280 615 T1600 625" fill="none" stroke="#d3b27d" stroke-width="4" stroke-dasharray="45 48" opacity=".62"/>
+<!-- rocks, grass and road debris -->
+<g fill="#0b1118">
+ <path d="M55 556 l22 -18 35 4 18 20Z M230 580 l19 -14 31 2 19 16Z M468 555 l16 -11 26 4 18 18Z M760 578 l22 -19 39 4 12 19Z M1080 560 l18 -15 34 3 18 15Z M1430 570 l20 -15 40 4 16 18Z"/>
+ <path d="M170 560 l-9 -35 5 1 14 31 M183 560 l12 -28 5 2 -10 31 M650 563 l-8 -33 6 2 13 31 M1380 557 l15 -30 5 2 -9 32"/>
+</g>
+<g stroke="#9a5541" stroke-width="3" opacity=".7"><path d="M250 554 l22 18 M278 550 l-12 26 M1080 550 l28 24 M1105 545 l-11 30"/></g>
+</svg>
