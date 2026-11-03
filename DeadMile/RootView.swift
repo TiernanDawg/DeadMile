@@ -76,35 +76,96 @@ struct RootView: View {
         let challenge = DailyChallengeSpec.current()
         let challengeProgress = progress.dailyChallengeDate == challenge.date ? progress.dailyChallengeProgress : 0
         let challengeComplete = progress.dailyChallengeDate == challenge.date && progress.dailyChallengeClaimed
-        return VStack(spacing:18) {
-            Text("THE ROAD\nDOESN'T END").font(.system(size:44,weight:.black,design:.rounded)).multilineTextAlignment(.center).tracking(-1)
-            Text("10 REGIONS  •  30 RUNS  •  NO SAFE STOPS").font(.system(size:11,weight:.heavy,design:.rounded)).tracking(2).foregroundStyle(.orange)
-            HStack(spacing:14) { metric("BEST DISTANCE","\(progress.bestDistance)m");metric("INFECTED","\(progress.totalKills)") }
-            VStack(spacing:6) {
-                HStack {
-                    Text("DAILY CHALLENGE").font(.system(size:10,weight:.black)).foregroundStyle(.orange)
-                    Spacer()
-                    Text(challengeComplete ? "COMPLETE · +$\(challenge.reward)" : "REWARD · $\(challenge.reward)")
-                        .font(.system(size:9,weight:.black)).foregroundStyle(.yellow)
+        return ScrollView(.vertical) {
+            HStack(spacing:22) {
+                VStack(alignment:.leading,spacing:14) {
+                    Text("THE ROAD DOESN'T END")
+                        .font(.system(size:35,weight:.black,design:.rounded))
+                        .tracking(-0.8)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                    Text("WASTELAND SURVIVAL  /  10 REGIONS  /  NO SAFE STOPS")
+                        .font(.system(size:9,weight:.black,design:.rounded))
+                        .tracking(1.6)
+                        .foregroundStyle(.orange)
+                    HStack(spacing:10) {
+                        metric("BEST DISTANCE","\(progress.bestDistance)m")
+                        metric("INFECTED","\(progress.totalKills)")
+                        metric("VEHICLES","\(progress.unlockedVehicles.count)/10")
+                    }
+                    Button {
+                        explorationMode=false
+                        selectedLevel=progress.unlockedLevel
+                        selectedArea=0
+                        screen="run"
+                    } label: {
+                        Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)
+                    }.buttonStyle(PrimaryStyle())
+                    HStack(spacing:18) {
+                        Button { screen="howto" } label: {
+                            Label("SURVIVAL GUIDE",systemImage:"book.closed.fill")
+                                .font(.system(size:10,weight:.black))
+                                .foregroundStyle(.white.opacity(0.72))
+                        }
+                        Button { screen="achievements" } label: {
+                            Label("FIELD RECORDS",systemImage:"medal.fill")
+                                .font(.system(size:10,weight:.black))
+                                .foregroundStyle(.white.opacity(0.72))
+                        }
+                    }
                 }
-                Text(challenge.title).font(.system(size:14,weight:.black))
-                Text(challenge.detail).font(.system(size:10)).foregroundStyle(.white.opacity(0.65))
-                ProgressView(value:Double(min(challengeProgress,challenge.target)),total:Double(challenge.target)).tint(challengeComplete ? .green : .orange)
-                Text("\(min(challengeProgress,challenge.target)) / \(challenge.target)")
-                    .font(.system(size:9,weight:.bold,design:.monospaced)).foregroundStyle(.white.opacity(0.55))
-            }.padding(12).frame(maxWidth:320).background(.white.opacity(0.06),in:RoundedRectangle(cornerRadius:12))
-            Button { explorationMode=false;selectedLevel=progress.unlockedLevel;selectedArea=0;screen="run" } label:{Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)}
-                .buttonStyle(PrimaryStyle())
-            Button { screen="howto" } label:{Text("HOW TO SURVIVE").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
-            Button { screen="achievements" } label:{Text("FIELD RECORDS").font(.system(size:12,weight:.bold)).foregroundStyle(.white.opacity(0.65))}
-            if progress.explorationUnlocked {
-                Button { explorationMode=true;selectedLevel=9;selectedArea=2;screen="run" } label: {
-                    Label("FREE ROAM · HIDDEN CACHES",systemImage:"binoculars.fill")
-                        .font(.system(size:12,weight:.black)).foregroundStyle(.yellow)
+                .frame(maxWidth:.infinity,alignment:.leading)
+
+                VStack(alignment:.leading,spacing:9) {
+                    HStack {
+                        Label("DAILY CONTRACT",systemImage:"target")
+                            .font(.system(size:10,weight:.black))
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        Text(challengeComplete ? "PAID" : "+$\(challenge.reward)")
+                            .font(.system(size:10,weight:.black))
+                            .foregroundStyle(.yellow)
+                    }
+                    Text(challenge.title)
+                        .font(.system(size:17,weight:.black,design:.rounded))
+                    Text(challenge.detail)
+                        .font(.system(size:10,weight:.medium))
+                        .foregroundStyle(.white.opacity(0.65))
+                    ProgressView(value:Double(min(challengeProgress,challenge.target)),total:Double(challenge.target))
+                        .tint(challengeComplete ? .green : .orange)
+                    Text("\(min(challengeProgress,challenge.target)) / \(challenge.target)")
+                        .font(.system(size:9,weight:.bold,design:.monospaced))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Button {
+                        let reward=progress.claimDaily()
+                        dailyMessage = reward > 0 ? "SUPPLY CLAIMED  +$\(reward)" : "ALREADY CLAIMED TODAY"
+                    } label: {
+                        Label(dailyMessage,systemImage:"gift.fill")
+                            .font(.system(size:9,weight:.black))
+                            .foregroundStyle(.yellow)
+                    }
+                    if progress.explorationUnlocked {
+                        Button {
+                            explorationMode=true
+                            selectedLevel=9
+                            selectedArea=2
+                            screen="run"
+                        } label: {
+                            Label("FREE ROAM  ·  CACHES",systemImage:"binoculars.fill")
+                                .font(.system(size:9,weight:.black))
+                                .foregroundStyle(.cyan)
+                        }
+                    }
                 }
+                .padding(16)
+                .frame(width:320,alignment:.leading)
+                .background(LinearGradient(colors:[Color.black.opacity(0.45),Color.black.opacity(0.22)],startPoint:.topLeading,endPoint:.bottomTrailing),in:RoundedRectangle(cornerRadius:18))
+                .overlay(RoundedRectangle(cornerRadius:18).stroke(.white.opacity(0.13),lineWidth:1))
             }
-            Button { let reward=progress.claimDaily(); if reward>0 { dailyMessage="DAILY SUPPLY +$\(reward)" } else { dailyMessage="DAILY SUPPLY ALREADY CLAIMED" } } label:{Label(dailyMessage,systemImage:"gift.fill").font(.system(size:12,weight:.bold)).foregroundStyle(.yellow)}
+            .padding(.horizontal,14)
+            .padding(.vertical,12)
         }
+        .scrollIndicators(.hidden)
     }
     @State private var dailyMessage = "CLAIM DAILY SUPPLY"
 
