@@ -426,8 +426,10 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             let hp = zombie.userData?["hp"] as? Int ?? 1
             if bullet != nil && hp > 1 {
                 zombie.userData?["hp"] = hp - 1
-                zombie.color = .red
-                zombie.colorBlendFactor = 0.65
+                if let sprite = zombie as? SKSpriteNode {
+                    sprite.color = .red
+                    sprite.colorBlendFactor = 0.65
+                }
                 bullet?.removeFromParent()
                 projectiles.removeAll { $0 === bullet }
                 emitDust(at:zombie.position,color:.orange)
