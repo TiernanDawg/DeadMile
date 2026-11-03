@@ -39,6 +39,7 @@ struct GameView: View {
                     Spacer()
                     stat("CASH","$\(cash)",.yellow)
                     Button { paused=true; scene.isPaused=true } label: { Image(systemName:"pause.fill").font(.title2).padding(12).background(.ultraThinMaterial,in:Circle()) }
+                        .accessibilityLabel("Pause game")
                 }
                 HStack(spacing:7) {
                     meter("FUEL",fuel,.orange); meter("HULL",health,.red); meter("BOOST",boost,.cyan)
@@ -48,20 +49,14 @@ struct GameView: View {
             VStack {
                 Spacer()
                 HStack(alignment:.bottom) {
-                    HStack(spacing:10) {
-                        holdButton("BACK",icon:"arrow.uturn.backward",color:.orange) { scene.input.brake=$0 }
-                        VStack(spacing:8) {
-                            holdButton("TILT",icon:"rotate.left",color:.white) { scene.input.tiltLeft=$0 }
-                            holdButton("TILT",icon:"rotate.right",color:.white) { scene.input.tiltRight=$0 }
-                        }
-                    }
-                    Spacer()
-                    HStack(spacing:10) {
-                        if progress.tier("weapon") > 0 {
-                            holdButton("FIRE",icon:"scope",color:.red) { scene.input.fire=$0 }
-                        }
-                        holdButton("BOOST",icon:"bolt.fill",color:.cyan) { scene.input.boost=$0 }
-                        holdButton("GAS",icon:"arrowtriangle.right.fill",color:.green) { scene.input.gas=$0 }
+                    if progress.leftHandedControls {
+                        rightControlCluster
+                        Spacer()
+                        leftControlCluster
+                    } else {
+                        leftControlCluster
+                        Spacer()
+                        rightControlCluster
                     }
                 }
             }.padding(.horizontal,24).padding(.bottom,18)
@@ -86,6 +81,26 @@ struct GameView: View {
             }
         }
         .onDisappear { FeedbackService.shared.stopEngine(); progress.save() }
+    }
+
+    private var leftControlCluster: some View {
+        HStack(spacing:10) {
+            holdButton("BACK",icon:"arrow.uturn.backward",color:.orange) { scene.input.brake=$0 }
+            VStack(spacing:8) {
+                holdButton("TILT LEFT",icon:"rotate.left",color:.white) { scene.input.tiltLeft=$0 }
+                holdButton("TILT RIGHT",icon:"rotate.right",color:.white) { scene.input.tiltRight=$0 }
+            }
+        }
+    }
+
+    private var rightControlCluster: some View {
+        HStack(spacing:10) {
+            if progress.tier("weapon") > 0 {
+                holdButton("FIRE",icon:"scope",color:.red) { scene.input.fire=$0 }
+            }
+            holdButton("BOOST",icon:"bolt.fill",color:.cyan) { scene.input.boost=$0 }
+            holdButton("GAS",icon:"arrowtriangle.right.fill",color:.green) { scene.input.gas=$0 }
+        }
     }
 
     private func stat(_ title:String,_ value:String,_ color:Color)->some View {
