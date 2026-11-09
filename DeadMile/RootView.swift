@@ -79,12 +79,12 @@ struct RootView: View {
         return ScrollView(.vertical) {
             HStack(spacing:22) {
                 VStack(alignment:.leading,spacing:14) {
-                    Text("THE ROAD DOESN'T END")
+                    Text("GET TO THE SHIP. STAY ALIVE.")
                         .font(.system(size:35,weight:.black,design:.rounded))
                         .tracking(-0.8)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
-                    Text("WASTELAND SURVIVAL  /  10 REGIONS  /  NO SAFE STOPS")
+                    Text("30 LEGS  /  10 VEHICLES  /  ONE WAY OUT")
                         .font(.system(size:9,weight:.black,design:.rounded))
                         .tracking(1.6)
                         .foregroundStyle(.orange)
@@ -96,7 +96,11 @@ struct RootView: View {
                     Button {
                         explorationMode=false
                         selectedLevel=progress.unlockedLevel
-                        selectedArea=0
+                        let region = progress.unlockedLevel
+                        selectedArea = (0..<3).first(where: { leg in
+                            let unlocked = leg == 0 || progress.areaProgress["\(region)-\(leg-1)",default:0] > 0
+                            return unlocked && progress.areaProgress["\(region)-\(leg)",default:0] == 0
+                        }) ?? 0
                         screen="run"
                     } label: {
                         Label("START DRIVING",systemImage:"play.fill").frame(maxWidth:300)
@@ -171,8 +175,8 @@ struct RootView: View {
 
     private var levels:some View {
         VStack(spacing:12) {
-            Text("THE WASTELAND").font(.system(size:30,weight:.black,design:.rounded))
-            Text("Choose your next route").foregroundStyle(.white.opacity(0.6))
+            Text("STORY CAMPAIGN").font(.system(size:30,weight:.black,design:.rounded))
+            Text("10 regions · 30 legs · reach the evacuation point").foregroundStyle(.white.opacity(0.6))
             ScrollView(.horizontal) {
                 HStack(spacing:12) {
                     ForEach(Biome.all) { biome in
@@ -195,14 +199,14 @@ struct RootView: View {
                         if unlocked { selectedArea=area;screen="run" }
                     } label: {
                         VStack(spacing:5) {
-                            Text("AREA \(area+1)").font(.system(size:12,weight:.black))
+                            Text("LEG \(String(format:"%02d",area+1))").font(.system(size:12,weight:.black))
                             Text("\(Int(Biome.all[selectedLevel].areaLengths[area])) m").font(.system(size:10,weight:.bold))
                             Text(progress.areaProgress["\(selectedLevel)-\(area)",default:0] > 0 ? "CLEARED" : (unlocked ? "DRIVE" : "LOCKED")).font(.system(size:9,weight:.black))
                         }.frame(maxWidth:.infinity).padding(.vertical,13).background(unlocked ? Color.orange.opacity(0.22) : Color.white.opacity(0.05),in:RoundedRectangle(cornerRadius:12))
                     }.disabled(!unlocked)
                 }
             }
-            Text("Clear each area to unlock the next. The three routes grow longer and pay more.").font(.system(size:12)).foregroundStyle(.white.opacity(0.6)).multilineTextAlignment(.center)
+            Text("Every leg has a halfway fuel station, varied route elevation, destructible roadblocks and an extraction marker. Clear the full distance to unlock the next leg.").font(.system(size:12)).foregroundStyle(.white.opacity(0.6)).multilineTextAlignment(.center)
         }
     }
 
@@ -212,7 +216,7 @@ struct RootView: View {
             ScrollView(.vertical) {
                 VStack(spacing:10) {
                     HStack(alignment:.firstTextBaseline) {
-                        Text("MOTOR POOL")
+                        Text("GARAGE / WORKSHOP")
                             .font(.system(size:25,weight:.black,design:.rounded))
                             .tracking(1.5)
                         Spacer()
@@ -279,11 +283,10 @@ struct RootView: View {
                         .padding(.vertical,8)
                     }
 
-                    HStack(spacing:8) {
-                        upgradeButton("ENGINE","engine","Acceleration")
-                        upgradeButton("FUEL","fuel","Run time")
-                        upgradeButton("ARMOR","armor","Impact strength")
-                        upgradeButton("WEAPON","weapon","Mounted gun")
+                    LazyVGrid(columns:Array(repeating:GridItem(.flexible(),spacing:8),count:3),spacing:8) {
+                        ForEach(UpgradeSpec.all) { upgrade in
+                            upgradeButton(upgrade.title,upgrade.id,upgrade.detail)
+                        }
                     }
 
                     HStack {

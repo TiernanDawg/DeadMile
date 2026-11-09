@@ -15,10 +15,10 @@ private enum CollisionLayer {
 @MainActor
 final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     struct Input { var gas=false; var brake=false; var tiltLeft=false; var tiltRight=false; var boost=false; var fire=false }
-    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int; let hiddenKits:Int }
+    struct Result { let distance:Int; let kills:Int; let earned:Int; let fuel:CGFloat; let destroyed:Bool; let cleared:Bool; let checkpointReached:Bool; let fuelPickups:Int; let cashPickups:Int; let boostPickups:Int; let hiddenKits:Int }
     var input = Input()
     var onFinish: ((Result)->Void)?
-    var onHUD: ((Int, Int, CGFloat, CGFloat, CGFloat, Int)->Void)?
+    var onHUD: ((Int, Int, CGFloat, CGFloat, CGFloat, Int, CGFloat)->Void)?
     var level = 0
     var area = 0
     var explorationMode = false
@@ -63,11 +63,16 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private var lastHUD: TimeInterval = 0
     private var terrainBodies: [SKNode] = []
     private var randomSeed: UInt64 = 0xDEAD_BEEF
+    private var stageLength: CGFloat = 52_000
+    private var checkpointReached = false
 
     override func didMove(to view: SKView) {
         backgroundColor = UIColor(red:0.12,green:0.10,blue:0.12,alpha:1)
         physicsWorld.gravity = CGVector(dx:0,dy:Tune.gravity)
         physicsWorld.speed = 1
+        let biome = Biome.all[min(max(level,0),9)]
+        stageLength = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10
+        checkpointReached = false
         physicsWorld.contactDelegate = self
         camera = cameraNode
         addChild(cameraNode)
@@ -200,8 +205,20 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         }
     }
 
+    private func smoothStep(_ value: CGFloat) -> CGFloat {
+        let t = max(0,min(1,value))
+        return t*t*(3-2*t)
+    }
+
     private func roadBaseY(at x: CGFloat) -> CGFloat {
-        65 + sin(x/780)*16 + cos(x/1650)*10 + sin(x/3200)*5
+        let natural = 65 + sin(x/980)*12 + cos(x/1850)*8 + sin(x/3600)*4
+        guard !explorationMode, stageLength > 0 else { return natural }
+        let progress = max(0,min(1,(x-150)/stageLength))
+        let bridge = smoothStep((progress-0.22)/0.028) - smoothStep((progress-0.42)/0.028)
+        let tunnel = smoothStep((progress-0.64)/0.024) - smoothStep((progress-0.77)/0.024)
+        let rampHeight: CGFloat = level % 3 == 0 ? 18 : (level % 3 == 1 ? -10 : 30)
+        let ramp = rampHeight * sin(progress * .pi)
+        return natural + 92*bridge - 62*tunnel + ramp
     }
 
     private func roadSurfaceY(at x: CGFloat) -> CGFloat {
@@ -211,7 +228,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     private func buildTerrain() {
         let biome = Biome.all[min(max(level,0),9)]
         let startX: CGFloat = -1400
-        let endX: CGFloat = explorationMode ? 1_000_000 : biome.areaLengths[min(max(area,0),2)] * 10 + 900
+        let endX: CGFloat = explorationMode ? 1_000_000 : stageLength + 900
         let step: CGFloat = 24
         let centerPath = CGMutablePath()
         let surfacePath = CGMutablePath()
@@ -278,6 +295,68 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             addChild(pebble)
         }
 
+        if !explorationMode {
+            let bridgeStart = 150 + stageLength*0.22
+            let bridgeEnd = 150 + stageLength*0.42
+            for x in stride(from:bridgeStart,through:bridgeEnd,by:stageLength*0.08) {
+                let supportHeight = max(35,roadBaseY(at:x)+36)
+                let support = SKShapeNode(rectOf:CGSize(width:18,height:supportHeight),cornerRadius:3)
+                support.fillColor = UIColor(white:0.13,alpha:1)
+                support.strokeColor = UIColor(white:0.32,alpha:1)
+                support.lineWidth = 2
+                support.position = CGPoint(x:x,y:supportHeight*0.5-18)
+                support.zPosition = 1
+                addChild(support)
+            }
+            let tunnelStart = 150 + stageLength*0.64
+            let tunnelEnd = 150 + stageLength*0.77
+            let roofWidth = tunnelEnd-tunnelStart
+            let tunnelRoof = SKShapeNode(rectOf:CGSize(width:roofWidth,height:24),cornerRadius:5)
+            tunnelRoof.fillColor = UIColor(white:0.08,alpha:1)
+            tunnelRoof.strokeColor = UIColor(white:0.36,alpha:1)
+            tunnelRoof.lineWidth = 4
+            tunnelRoof.position = CGPoint(x:(tunnelStart+tunnelEnd)*0.5,y:roadBaseY(at:(tunnelStart+tunnelEnd)*0.5)+172)
+            tunnelRoof.zPosition = -2
+            addChild(tunnelRoof)
+            for x in [tunnelStart,tunnelEnd] {
+                let pillarHeight = max(40,roadBaseY(at:x)+160)
+                let pillar = SKShapeNode(rectOf:CGSize(width:30,height:pillarHeight),cornerRadius:4)
+                pillar.fillColor = UIColor(white:0.12,alpha:1)
+                pillar.strokeColor = UIColor(white:0.30,alpha:1)
+                pillar.lineWidth = 3
+                pillar.position = CGPoint(x:x,y:pillarHeight*0.5-25)
+                pillar.zPosition = -1
+                addChild(pillar)
+            }
+            let checkpointX = 150 + stageLength*0.50
+            let sign = SKShapeNode(rectOf:CGSize(width:70,height:44),cornerRadius:7)
+            sign.fillColor = UIColor(red:0.12,green:0.24,blue:0.19,alpha:1)
+            sign.strokeColor = UIColor(red:0.45,green:0.85,blue:0.58,alpha:1)
+            sign.lineWidth = 3
+            sign.position = CGPoint(x:checkpointX,y:roadSurfaceY(at:checkpointX)+124)
+            sign.zPosition = 7
+            let signText = SKLabelNode(text:"FUEL")
+            signText.fontName = "AvenirNext-Heavy"
+            signText.fontSize = 14
+            signText.fontColor = .white
+            signText.verticalAlignmentMode = .center
+            sign.addChild(signText)
+            addChild(sign)
+            let finishX = 150 + stageLength
+            let beacon = SKShapeNode(rectOf:CGSize(width:18,height:180),cornerRadius:5)
+            beacon.fillColor = UIColor(red:0.86,green:0.24,blue:0.15,alpha:1)
+            beacon.strokeColor = .white
+            beacon.lineWidth = 2
+            beacon.position = CGPoint(x:finishX,y:roadSurfaceY(at:finishX)+90)
+            beacon.zPosition = 8
+            let beaconLight = SKShapeNode(circleOfRadius:13)
+            beaconLight.fillColor = .systemYellow
+            beaconLight.strokeColor = .white
+            beaconLight.position = CGPoint(x:0,y:75)
+            beacon.addChild(beaconLight)
+            addChild(beacon)
+        }
+
         let physicsGround = SKNode()
         physicsGround.physicsBody = SKPhysicsBody(edgeChainFrom:surfacePath)
         physicsGround.physicsBody?.categoryBitMask = CollisionLayer.terrain
@@ -290,7 +369,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
 
     private func buildVehicle() {
         let width = CGFloat(150 * vehicle.width)
-        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 24
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
@@ -303,8 +382,8 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let body = SKPhysicsBody(rectangleOf:chassisSize)
         body.mass = CGFloat(vehicle.mass*5.6)
         body.allowsRotation = true
-        body.linearDamping = 0.12
-        body.angularDamping = 1.6
+        body.linearDamping = 0.075
+        body.angularDamping = 2.25
         body.friction = 0.75
         body.restitution = 0.015
         body.categoryBitMask = CollisionLayer.vehicle
@@ -360,7 +439,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             wheel.zPosition = 11
             let wheelBody = SKPhysicsBody(circleOfRadius:15.5)
             wheelBody.mass = max(0.65,CGFloat(vehicle.mass)*0.62)
-            wheelBody.friction = 3.8
+            wheelBody.friction = 2.8 + CGFloat(upgradeTiers["tires",default:0])*0.72
             wheelBody.linearDamping = 0.04
             wheelBody.angularDamping = 0.035
             wheelBody.restitution = 0.01
@@ -413,7 +492,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         let boostPressed = input.boost || (pad?.buttonB.isPressed ?? false)
         let firePressed = input.fire || (pad?.buttonA.isPressed ?? false)
         FeedbackService.shared.updateEngine(speed:speed,audio:audioEnabled,biome:level)
-        let engine=CGFloat(vehicle.power)*(1+CGFloat(upgradeTiers["engine",default:0])*0.18)
+        let engine = CGFloat(vehicle.power) * (1 + CGFloat(upgradeTiers["engine",default:0])*0.20)
+        let tireGrip = 1 + CGFloat(upgradeTiers["tires",default:0])*0.14
+        let engineHealth = 0.58 + 0.42*max(0,health/max(1,maxHealth))
         let reverseDrive = brakePressed && speed < 35 && fuel > 0
         if gasPressed && fuel > 0 {
             let torquePerWheel = Tune.wheelDriveTorque * engine / CGFloat(max(1,wheels.count))
@@ -424,10 +505,13 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                     wheelBody.angularVelocity = wheelBody.angularVelocity < 0 ? -Tune.maxWheelAngularSpeed : Tune.maxWheelAngularSpeed
                 }
             }
-            fuel = max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.08)*dt)
+            let forwardForce = Tune.engineForce * engine * tireGrip * engineHealth
+            body.applyForce(CGVector(dx:forwardForce,dy:0))
+            fuel = max(0,fuel-Tune.fuelBurnPerSecond*(1+engine*0.06)*dt)
         } else if reverseDrive {
             for wheel in wheels { wheel.physicsBody?.applyTorque(Tune.wheelReverseTorque * CGFloat(vehicle.power)) }
-            fuel = max(0,fuel-Tune.fuelBurnPerSecond*dt)
+            body.applyForce(CGVector(dx:-Tune.engineForce*0.45,dy:0))
+            fuel = max(0,fuel-Tune.fuelBurnPerSecond*0.8*dt)
         } else if brakePressed {
             if abs(body.velocity.dx) > 2 {
                 let brakeDirection: CGFloat = body.velocity.dx >= 0 ? -1 : 1
@@ -439,8 +523,9 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 }
             }
         }
-        if tiltLeftPressed { body.applyTorque(Tune.airTorque*body.mass) }
-        if tiltRightPressed { body.applyTorque(-Tune.airTorque*body.mass) }
+        let airborne = car.position.y > roadSurfaceY(at:car.position.x)+72
+        if airborne && tiltLeftPressed { body.applyTorque(Tune.airTorque*body.mass*0.42) }
+        if airborne && tiltRightPressed { body.applyTorque(-Tune.airTorque*body.mass*0.42) }
         if firePressed && upgradeTiers["weapon",default:0] > 0 {
             let tier = upgradeTiers["weapon",default:0]
             let cooldown = max(0.16,0.48-Double(tier)*0.055)
@@ -449,15 +534,26 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 fireWeapon(from:car.position,tier:tier)
             }
         }
-        if boostPressed && boost>0 && fuel>0 {
-            body.applyForce(CGVector(dx:2200*CGFloat(vehicle.power),dy:0))
-            boost=max(0,boost-dt*24)
-            fuel=max(0,fuel-dt*2)
+        if boostPressed && boost > 0 && fuel > 0 {
+            let boostTier = CGFloat(upgradeTiers["boost",default:0])
+            body.applyForce(CGVector(dx:(2450+boostTier*360)*CGFloat(vehicle.power),dy:0))
+            boost = max(0,boost-dt*(24-boostTier*1.8))
+            fuel = max(0,fuel-dt*1.4)
             if Int(currentTime*12) % 3 == 0 { emitDust(at:car.position,color:.cyan) }
         }
         if body.velocity.dx > Tune.maxForwardSpeed { body.velocity.dx=Tune.maxForwardSpeed }
         if body.velocity.dx < -Tune.maxForwardSpeed*0.45 { body.velocity.dx = -Tune.maxForwardSpeed*0.45 }
         distance=max(distance,car.position.x-150)
+        if !checkpointReached && !explorationMode && distance >= stageLength*0.50 {
+            checkpointReached = true
+            fuel = min(maxFuel,fuel+maxFuel*Tune.checkpointFuelFraction)
+            cash += Tune.checkpointBonus
+            emitDust(at:CGPoint(x:car.position.x,y:car.position.y+30),color:.systemGreen)
+        }
+        if !explorationMode && distance >= stageLength {
+            finish(destroyed:health <= 0,cleared:health > 0)
+            return
+        }
         if explorationMode && car.position.x-lastKit > 6500 {
             lastKit = car.position.x
             let kitX = car.position.x+CGFloat.random(in:700...1100)
@@ -541,10 +637,11 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             wheels.last?.name = "detached-wheel"
             emitDust(at:car.position,color:.orange)
         }
-        if health <= 0 || (fuel <= 0 && lowSpeedTime > Tune.lowSpeedEndDelay) { finish(destroyed:health<=0) }
+        if health <= 0 || (fuel <= 0 && lowSpeedTime > Tune.lowSpeedEndDelay) { finish(destroyed:health<=0,cleared:false) }
         if currentTime-lastHUD > 0.12 {
             lastHUD=currentTime
-            onHUD?(Int(distance/10),Int(speed*0.22),maxFuel > 0 ? fuel / maxFuel * 100 : 0,maxHealth > 0 ? health / maxHealth * 100 : 0,boost,cash)
+            let routeProgress = explorationMode ? 0 : min(1,distance/max(1,stageLength))
+            onHUD?(Int(distance/10),Int(speed*0.22),maxFuel > 0 ? fuel / maxFuel * 100 : 0,maxHealth > 0 ? health / maxHealth * 100 : 0,boost,cash,routeProgress)
         }
         if car.position.y < -240 { health=0 }
     }
@@ -607,7 +704,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
     }
 
     private func spawnHazard(at groundPoint:CGPoint) {
-        let kind = Int.random(in:0..<3)
+        let kind = Int.random(in:0..<6)
         let node: SKShapeNode
         let bodySize: CGSize
         switch kind {
@@ -623,26 +720,56 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             node.fillColor = UIColor(white:0.16,alpha:1)
             node.strokeColor = UIColor(white:0.48,alpha:1)
             node.lineWidth = 6
-        default:
+        case 2:
             bodySize = CGSize(width:64,height:38)
             let path = CGMutablePath()
-            path.move(to:CGPoint(x:-34,y:-16))
-            path.addLine(to:CGPoint(x:-18,y:22))
-            path.addLine(to:CGPoint(x:-3,y:-16))
-            path.addLine(to:CGPoint(x:14,y:22))
-            path.addLine(to:CGPoint(x:31,y:-16))
-            path.closeSubpath()
+            path.move(to:CGPoint(x:-34,y:-16)); path.addLine(to:CGPoint(x:-18,y:22))
+            path.addLine(to:CGPoint(x:-3,y:-16)); path.addLine(to:CGPoint(x:14,y:22))
+            path.addLine(to:CGPoint(x:31,y:-16)); path.closeSubpath()
             node = SKShapeNode(path:path)
             node.fillColor = UIColor(red:0.58,green:0.55,blue:0.48,alpha:1)
             node.strokeColor = .white
             node.lineWidth = 2
+        case 3:
+            bodySize = CGSize(width:42,height:54)
+            node = SKShapeNode(rectOf:bodySize,cornerRadius:8)
+            node.fillColor = UIColor(red:0.58,green:0.12,blue:0.08,alpha:1)
+            node.strokeColor = UIColor(red:0.93,green:0.68,blue:0.25,alpha:1)
+            node.lineWidth = 4
+            let stripe = SKShapeNode(rectOf:CGSize(width:38,height:8))
+            stripe.fillColor = .systemYellow
+            stripe.strokeColor = .clear
+            node.addChild(stripe)
+        case 4:
+            bodySize = CGSize(width:116,height:40)
+            node = SKShapeNode(rectOf:bodySize,cornerRadius:8)
+            node.fillColor = UIColor(red:0.28,green:0.31,blue:0.30,alpha:1)
+            node.strokeColor = UIColor(white:0.68,alpha:1)
+            node.lineWidth = 4
+            for x in [-34,34] {
+                let wheel = SKShapeNode(circleOfRadius:12)
+                wheel.fillColor = UIColor(white:0.08,alpha:1)
+                wheel.strokeColor = UIColor(white:0.48,alpha:1)
+                wheel.position = CGPoint(x:x,y:-20)
+                node.addChild(wheel)
+            }
+        default:
+            bodySize = CGSize(width:84,height:48)
+            node = SKShapeNode(rectOf:bodySize,cornerRadius:5)
+            node.fillColor = UIColor(red:0.34,green:0.36,blue:0.34,alpha:1)
+            node.strokeColor = UIColor(white:0.72,alpha:1)
+            node.lineWidth = 3
+            let hazardStripe = SKShapeNode(rectOf:CGSize(width:70,height:7))
+            hazardStripe.fillColor = UIColor(red:0.92,green:0.68,blue:0.16,alpha:1)
+            hazardStripe.strokeColor = .clear
+            node.addChild(hazardStripe)
         }
         node.position = CGPoint(x:groundPoint.x,y:groundPoint.y+bodySize.height*0.5+2)
         node.zPosition = 7
         node.name = "hazard"
         let body: SKPhysicsBody = kind == 1 ? SKPhysicsBody(circleOfRadius:25) : SKPhysicsBody(rectangleOf:bodySize)
         body.isDynamic = true
-        body.mass = CGFloat([6.0,15.0,9.0][kind])
+        body.mass = CGFloat([6.0,15.0,9.0,5.0,18.0,13.0][kind])
         body.friction = kind == 1 ? 1.9 : 1.25
         body.linearDamping = 0.08
         body.angularDamping = 0.12
@@ -654,6 +781,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         node.physicsBody = body
         let metadata = NSMutableDictionary()
         metadata["kind"] = kind
+        metadata["hp"] = [2,4,1,2,4,3][kind]
         metadata["nextHit"] = -1.0
         node.userData = metadata
         addChild(node)
@@ -682,7 +810,7 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
                 let hp = zombie.userData?["hp"] as? Int ?? 1
                 let remaining = hp - 1
                 if remaining <= 0 {
-                    eliminateZombie(zombie)
+                    eliminateZombie(zombie,launch:260)
                 } else {
                     zombie.userData?["hp"] = remaining
                     if let sprite = zombie as? SKSpriteNode {
@@ -696,25 +824,17 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             } else if let car = chassis, let zombieBody = zombie.physicsBody {
                 let vehicleSpeed = abs(car.physicsBody?.velocity.dx ?? 0)
                 let direction: CGFloat = zombie.position.x >= car.position.x ? 1 : -1
-                zombieBody.applyImpulse(CGVector(dx:direction*(150+vehicleSpeed*0.22),dy:72))
-                zombieBody.applyAngularImpulse(direction*2.8)
-
-                if vehicleSpeed > 360 {
-                    let hp = zombie.userData?["hp"] as? Int ?? 1
-                    let remaining = hp - 1
-                    if remaining <= 0 {
-                        eliminateZombie(zombie)
-                    } else {
-                        zombie.userData?["hp"] = remaining
+                if vehicleSpeed > 210 {
+                    eliminateZombie(zombie,launch:direction*(180+vehicleSpeed*0.42))
+                } else {
+                    zombieBody.applyImpulse(CGVector(dx:direction*(105+vehicleSpeed*0.16),dy:48))
+                    zombieBody.applyAngularImpulse(direction*1.4)
+                    let nextDamage = zombie.userData?["nextDamage"] as? Double ?? 0
+                    if elapsed >= nextDamage {
+                        zombie.userData?["nextDamage"] = elapsed + 0.82
+                        health = max(0,health-Tune.zombieContactDamage)
+                        FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
                     }
-                }
-
-                let nextDamage = zombie.userData?["nextDamage"] as? Double ?? 0
-                if elapsed >= nextDamage {
-                    zombie.userData?["nextDamage"] = elapsed + 0.78
-                    let damage: CGFloat = vehicleSpeed > 300 ? 9 : 5
-                    health = max(0,health-damage)
-                    FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
                 }
             }
         }
@@ -723,23 +843,34 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
             let nextHit = hazard.userData?["nextHit"] as? Double ?? -1
             let vehicleSpeed = abs(chassis?.physicsBody?.velocity.dx ?? 0)
             if vehicleSpeed > 45 && elapsed >= nextHit {
-                hazard.userData?["nextHit"] = elapsed + 0.72
-                let damage = min(16,4+Int(vehicleSpeed/90))
+                hazard.userData?["nextHit"] = elapsed + 0.54
+                let damage = min(18,4+Int(vehicleSpeed/82))
                 health = max(0,health-CGFloat(damage))
                 FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
                 emitDust(at:hazard.position,color:UIColor(red:0.72,green:0.42,blue:0.24,alpha:1))
                 let direction: CGFloat = hazard.position.x >= (chassis?.position.x ?? 0) ? 1 : -1
-                hazard.physicsBody?.applyImpulse(CGVector(dx:direction*(45+vehicleSpeed*0.12),dy:24))
-                hazard.physicsBody?.applyAngularImpulse(direction*1.4)
+                hazard.physicsBody?.applyImpulse(CGVector(dx:direction*(65+vehicleSpeed*0.14),dy:32))
+                hazard.physicsBody?.applyAngularImpulse(direction*1.7)
+                let hp = hazard.userData?["hp"] as? Int ?? 1
+                let damageToObject = max(1,Int(vehicleSpeed/240))
+                let remaining = hp-damageToObject
+                if remaining <= 0 {
+                    cash += 24
+                    emitDust(at:hazard.position,color:.yellow)
+                    hazard.removeFromParent()
+                    hazards.removeAll { $0 === hazard }
+                } else {
+                    hazard.userData?["hp"] = remaining
+                }
             }
         }
 
         if let pickup = (a?.name?.hasPrefix("pickup-") == true ? a : b?.name?.hasPrefix("pickup-") == true ? b : nil) {
             let kind = Int(pickup.name?.replacingOccurrences(of:"pickup-",with:"") ?? "0") ?? 0
             if kind == 0 { fuel = min(maxFuel,fuel+28); fuelPickups += 1 }
-            if kind == 1 { cash += 75; cashPickups += 1 }
+            if kind == 1 { cash += 90; cashPickups += 1 }
             if kind == 2 { boost = min(100,boost+55); boostPickups += 1 }
-            if kind == 3 { health = min(maxHealth,health+35) }
+            if kind == 3 { health = min(maxHealth,health+30) }
             if kind == 4 { hiddenKits += 1; cash += 250; fuel = min(maxFuel,fuel+18); health = min(maxHealth,health+15); boost = min(100,boost+25) }
             FeedbackService.shared.pickup(audio:audioEnabled,haptics:hapticsEnabled)
             emitDust(at:pickup.position,color:.yellow)
@@ -748,13 +879,23 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         }
     }
 
-    private func eliminateZombie(_ zombie: SKNode) {
+    private func eliminateZombie(_ zombie: SKNode,launch:CGFloat = 260) {
+        guard zombie.userData?["dead"] as? Bool != true else { return }
+        zombie.userData?["dead"] = true
         kills += 1
         FeedbackService.shared.hit(audio:audioEnabled,haptics:hapticsEnabled)
         cash += Tune.hitCash
         emitDust(at:zombie.position,color:UIColor(red:0.56,green:0.72,blue:0.48,alpha:1))
-        zombie.removeFromParent()
+        if let body = zombie.physicsBody {
+            body.categoryBitMask = CollisionLayer.infected
+            body.collisionBitMask = CollisionLayer.terrain | CollisionLayer.hazard
+            body.contactTestBitMask = 0
+            let direction: CGFloat = launch < 0 ? -1 : 1
+            body.applyImpulse(CGVector(dx:launch,dy:110))
+            body.applyAngularImpulse(direction*3.8)
+        }
         zombies.removeAll { $0 === zombie }
+        zombie.run(.sequence([.wait(forDuration:2.4),.fadeOut(withDuration:0.45),.removeFromParent()]))
     }
 
     private func emitDust(at point:CGPoint,color:UIColor) {
@@ -779,20 +920,22 @@ final class DeadMileScene: SKScene, @preconcurrency SKPhysicsContactDelegate {
         hoodPanel = nil
         panelDetached = false
         detachedWheel = false
-        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 15
+        maxFuel = CGFloat(vehicle.fuel) + CGFloat(upgradeTiers["fuel",default:0]) * 24
         fuel = maxFuel
         maxHealth = Tune.baseHealth * CGFloat(vehicle.armor) * (1 + CGFloat(upgradeTiers["armor",default:0]) * 0.2)
         health = maxHealth
         boost = 0; distance = 0
+        checkpointReached = false
         kills = 0; cash = 0; fuelPickups = 0; cashPickups = 0; boostPickups = 0; hiddenKits = 0; lastKit = 0; elapsed = 0; lowSpeedTime = 0; lastSpawn = 0; lastHazard = 0; lastPickup = 2300; pickupIndex = 3; lastHUD = 0; lastShotTime = 0; ended = false
         didMove(to: view ?? SKView())
     }
 
-    private func finish(destroyed:Bool) {
+    private func finish(destroyed:Bool,cleared:Bool) {
         guard !ended else { return }
         ended=true
         FeedbackService.shared.stopEngine()
-        let result=Result(distance:Int(distance/10),kills:kills,earned:cash+Int(distance/1000)*Tune.distanceCashPer100,fuel:fuel,destroyed:destroyed,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups,hiddenKits:hiddenKits)
+        let payout = cash + Int(distance/1000)*Tune.distanceCashPer100
+        let result = Result(distance:Int(distance/10),kills:kills,earned:payout,fuel:fuel,destroyed:destroyed,cleared:cleared,checkpointReached:checkpointReached,fuelPickups:fuelPickups,cashPickups:cashPickups,boostPickups:boostPickups,hiddenKits:hiddenKits)
         onFinish?(result)
         isPaused=true
     }

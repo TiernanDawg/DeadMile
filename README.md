@@ -1,8 +1,46 @@
 # DEAD MILE
 
-Original 2D zombie-driving arcade game for iPhone. Native SwiftUI + SpriteKit, original procedural Core Graphics/SpriteKit artwork, a physics-driven side-view vehicle, local Codable saves, ten biome definitions, and an unsigned IPA GitHub Actions workflow.
+**Dead Mile** is an original, offline-first, side-scrolling zombie-driving campaign for iPhone. It takes inspiration from the fuel-limited, earn-cash, upgrade-and-drive loop of classic zombie vehicle games, while using its own name, vehicles, art, scenery and stage designs.
+
+## Campaign
+
+- 10 regions × 3 legs = **30 campaign legs** with increasing distance and difficulty.
+- Each leg ends at an extraction marker. Complete the full route to unlock the next leg; clear the final leg of a region to open the next region.
+- Every leg has changing elevation, a raised bridge section, a lowered tunnel section, roadside hazards, zombie groups and a midway fuel-service stop.
+- The midway checkpoint restores part of the tank and awards cash. It is a real in-run event, not just a menu marker.
+- Runs end when the vehicle is wrecked or runs out of fuel. Distance, kills, pickups and destroyed roadblocks contribute to the payout.
+
+## Driving and combat
+
+- SpriteKit physics scene with a dynamic chassis, independently rotating wheels, wheel torque plus engine traction, persistent momentum, braking/reversing and airborne pitch control.
+- Engine health affects power. Chassis damage can detach body panels and a wheel; repair is automatic between runs.
+- Zombies have dynamic bodies and ragdoll knockback. A high-speed hit can launch them; lower-speed impacts push them back and can damage the vehicle.
+- Six physical roadside obstacle types: crates, boulders, spike barricades, fuel drums, wrecked cars and concrete barriers. They move on impact and require repeated impacts to break.
+- Mounted weapon, boost, fuel, repair and cash pickups. Ten original vehicle designs have different mass, power, armor, fuel capacity and purchase prices.
+
+## Garage and progression
+
+Six upgrade systems, each with five tiers and vehicle-specific levels:
+1. **Engine** — acceleration and top speed.
+2. **Tires** — grip and traction.
+3. **Fuel tank** — greater range.
+4. **Armor** — hull capacity.
+5. **Boost** — stronger and longer nitro.
+6. **Weapon** — faster mounted-weapon fire.
+
+Cash is earned from distance, zombie kills, destroyed roadblocks and pickups. There are no ads, paid currency, forced video rewards, accounts or online services. Local progress is saved as Codable JSON. The existing 50 contracts, daily challenge, achievements, import/export, audio/haptic settings and free-roam unlock remain.
+
+## Controls
+
+- Gas and brake/reverse.
+- Separate left/right airborne pitch controls.
+- Boost and optional mounted-weapon fire.
+- External controller: right trigger = gas, left trigger = brake, left stick = pitch, B = boost, A = fire.
+- Adjustable control size and mirrored left-handed layout.
 
 ## Build
+
+The repository uses SwiftUI + SpriteKit, XcodeGen and GitHub Actions on the `xcode-27` runner. The workflow builds an unsigned iOS 27 ARM64 app and packages it as `DeadMile.ipa`. Download the workflow artifact and sign it with SideStore or another sideloading tool before installing.
 
 ```bash
 brew install xcodegen
@@ -10,21 +48,10 @@ xcodegen generate --spec project.yml
 xcodebuild -project DeadMile.xcodeproj -scheme DeadMile -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-GitHub Actions packages the device app into an unsigned `DeadMile.ipa`. Sign it with a sideloading tool before installing on a standard iPhone.
+## Art and licensing
 
-## Included
+All app artwork is original procedural/vector art in the repository. The game recreates genre mechanics, not Earn to Die's name, logo, characters, vehicle artwork, UI assets, sound or proprietary content.
 
-- SpriteKit driving scene with a dynamic chassis, powered pin-joint wheels, separate chassis/wheel/terrain collision layers, camera framing that keeps the vehicle clear of touch controls, ground-aligned spawning, a broad asphalt road with lane markings, terrain-following physics, and speed-matched wheel rotation.
-- Ten distinct procedural vehicle silhouettes and ten zombie visual archetypes. Infected have differentiated movement, mass and durability; mounted weapons fire projectiles; road hazards damage the vehicle; severe damage can detach the hood and a wheel.
-- Original layered wasteland scenery: distant mesas, abandoned skyline, dead trees, utility poles, parallax scrolling, biome palettes, roadside debris, and a vector-drawn menu background. No third-party art pack or licensed game assets are used.
-- Ten biome definitions with three increasing area lengths each; scenery loops across long runs, zombies pursue and separate from each other, three road-hazard types deal impact damage, and fuel/cash/boost/repair supplies spawn along the route. Missed pickups and other off-screen entities are culled.
-- Ten vehicle definitions with working power/fuel/armor stats, per-vehicle upgrade tiers, versioned local saves with validated JSON import/export and sharing, local-time daily supply claims, settings, achievements, and hidden debug panel.
-- SwiftUI menus and touch controls; 50 persistent cumulative contracts with one-time cash rewards and up to three saved stars unlock after the first region. A rotating daily challenge tracks distance, kills, or supplies and pays a one-time reward. Completing the final region unlocks long-form free roam with collectible survival caches. Procedural engine and biome ambience loops supplement impact and pickup audio. Distance cash is calculated from displayed meters and area-clear bonuses are paid once per area. No third-party art, ROMs, ads, IAP, network runtime, JIT, or paid entitlements.
+## QA status
 
-## Controls
-
-Touch controls use press/release handling, on-control labels, adjustable size, a compact HUD with numeric meters, and mirrored left-handed placement. The garage and home screen are fitted for landscape layouts. Compatible external controllers use right trigger for gas, left trigger for brake, left stick for tilt, B for boost, and A for fire. Fuel pickups refill the tank; cash bundles and infected kills pay out.
-
-## QA status and remaining work
-
-The latest source successfully compiled with Xcode 27.1 against the iOS 27.1 SDK and produced a verified unsigned ARM64 IPA in GitHub Actions (run 41554957310). The IPA has not yet been installed or play-tested on a physical iPhone. The driving/physics changes are intended to correct the previous weak road contact, off-screen car framing, and unreliable touch input, but real-device handling, collisions, frame rate, and balance still need hands-on QA. Remaining work includes fuller control remapping, broader accessibility/Dynamic Type support, more biome-specific environmental props/music, and on-device performance/balance testing. Do not treat definitions or unlock flags as proof those systems are implemented.
+The latest build is still pending. A successful CI build verifies Swift compilation and IPA packaging, not real-device handling. The driving model, suspension/traction response, hit reactions, collisions, frame pacing and upgrade balance still require play-testing on the iPhone 17 Pro.

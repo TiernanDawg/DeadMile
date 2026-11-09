@@ -13,6 +13,7 @@ struct GameView: View {
     @State private var health:CGFloat=100
     @State private var boost:CGFloat=0
     @State private var cash=0
+    @State private var routeProgress:CGFloat=0
     @State private var result: DeadMileScene.Result?
     @State private var paused=false
     @State private var scene: DeadMileScene
@@ -25,7 +26,7 @@ struct GameView: View {
         s.level=level; s.area=area; s.explorationMode=explorationMode
         s.audioEnabled=progress.audioEnabled; s.hapticsEnabled=progress.hapticsEnabled
         s.vehicle=VehicleSpec.roster.first(where:{$0.id==progress.selectedVehicle}) ?? VehicleSpec.roster[0]
-        s.upgradeTiers=["engine":progress.tier("engine"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor"),"weapon":progress.tier("weapon")]
+        s.upgradeTiers=["engine":progress.tier("engine"),"tires":progress.tier("tires"),"fuel":progress.tier("fuel"),"armor":progress.tier("armor"),"boost":progress.tier("boost"),"weapon":progress.tier("weapon")]
         _scene=State(initialValue:s)
     }
 
@@ -43,6 +44,26 @@ struct GameView: View {
                 }
                 HStack(spacing:7) {
                     meter("FUEL",fuel,.orange); meter("HULL",health,.red); meter("BOOST",boost,.cyan)
+                }
+                if !explorationMode {
+                    HStack(spacing:8) {
+                        Text("REGION \(level+1)  /  LEG \(area+1)")
+                            .font(.system(size:9,weight:.black,design:.rounded))
+                            .foregroundStyle(.white.opacity(0.76))
+                        GeometryReader { geometry in
+                            ZStack(alignment:.leading) {
+                                Capsule().fill(.white.opacity(0.16))
+                                Capsule().fill(LinearGradient(colors:[.orange,.yellow],startPoint:.leading,endPoint:.trailing))
+                                    .frame(width:geometry.size.width*max(0,min(1,routeProgress)))
+                            }
+                        }.frame(height:5)
+                        Text("\(Int(routeProgress*100))%")
+                            .font(.system(size:9,weight:.black,design:.monospaced))
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.horizontal,10)
+                    .padding(.vertical,6)
+                    .background(.black.opacity(0.38),in:Capsule())
                 }
                 Spacer()
             }.padding(.horizontal,18).padding(.top,8)
@@ -64,11 +85,11 @@ struct GameView: View {
                 overlay(title:"PAUSED",subtitle:"The wasteland can wait.",primary:"RESUME",secondary:"QUIT RUN",primaryAction:{paused=false;scene.isPaused=false},secondaryAction:onExit)
             }
             if let result {
-                overlay(title:result.destroyed ? "WRECKED" : "OUT OF FUEL",subtitle:"\(result.distance)m  •  \(result.kills) infected eliminated  •  \(result.hiddenKits) caches  •  +$\(result.earned)",primary:"UPGRADE",secondary:"RETRY",primaryAction:onExit,secondaryAction:{self.result=nil;scene.resetRun()})
+                overlay(title:result.cleared ? "LEG CLEARED" : (result.destroyed ? "VEHICLE WRECKED" : "OUT OF FUEL"),subtitle:"\(result.distance)m  •  \(result.kills) infected  •  \(result.checkpointReached ? "FUEL STOP REACHED" : "NO CHECKPOINT")  •  +$\(result.earned)",primary:"GARAGE",secondary:"RETRY",primaryAction:onExit,secondaryAction:{self.result=nil;scene.resetRun()})
             }
         }
         .onAppear {
-            scene.onHUD={ d,s,f,h,b,c in distance=d;speed=s;fuel=f;health=h;boost=b;cash=c }
+            scene.onHUD={ d,s,f,h,b,c,p in distance=d;speed=s;fuel=f;health=h;boost=b;cash=c;routeProgress=p }
             scene.onFinish={ r in
                 result=r
                 progress.finish(RunRecord(distance:r.distance,kills:r.kills,earned:r.earned,level:level,area:area,fuelPickups:r.fuelPickups,cashPickups:r.cashPickups,boostPickups:r.boostPickups,hiddenKits:r.hiddenKits,isExploration:explorationMode))

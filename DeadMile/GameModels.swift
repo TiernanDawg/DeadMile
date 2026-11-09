@@ -25,6 +25,21 @@ struct VehicleSpec: Identifiable, Codable {
     ]
 }
 
+struct UpgradeSpec: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let symbol: String
+    static let all: [UpgradeSpec] = [
+        .init(id:"engine",title:"ENGINE",detail:"More torque and top speed",symbol:"engine.combustion.fill"),
+        .init(id:"tires",title:"TIRES",detail:"Grip, traction and control",symbol:"circle.hexagongrid.fill"),
+        .init(id:"fuel",title:"FUEL TANK",detail:"Longer drives between stops",symbol:"fuelpump.fill"),
+        .init(id:"armor",title:"ARMOR",detail:"Protect the chassis and parts",symbol:"shield.lefthalf.filled"),
+        .init(id:"boost",title:"BOOST",detail:"Longer and stronger nitro",symbol:"bolt.fill"),
+        .init(id:"weapon",title:"WEAPON",detail:"Mounted gun and firing rate",symbol:"scope")
+    ]
+}
+
 struct RunRecord: Codable {
     var distance: Int
     var kills: Int
@@ -107,7 +122,7 @@ struct MissionSpec: Identifiable {
 @Observable
 @MainActor
 final class PlayerProgress {
-    var cash = 450
+    var cash = 700
     var bestDistance = 0
     var unlockedLevel = 0
     var unlockedVehicles: Set<Int> = [0]
@@ -142,10 +157,18 @@ final class PlayerProgress {
 
     func upgradeCost(_ category: String, vehicle: Int? = nil) -> Int {
         let t = tier(category, vehicle: vehicle)
-        return Int(Double(Tune.upgradeBaseCost) * pow(Tune.upgradeCostGrowth, Double(t)) * (1 + Double(vehicle ?? selectedVehicle) * 0.16))
+        let base: Double
+        switch category {
+        case "weapon": base = 165
+        case "boost": base = 145
+        case "armor": base = 135
+        default: base = Double(Tune.upgradeBaseCost)
+        }
+        return Int(base * pow(Tune.upgradeCostGrowth, Double(t)) * (1 + Double(vehicle ?? selectedVehicle) * 0.11))
     }
 
     func buyUpgrade(_ category: String) -> Bool {
+        guard UpgradeSpec.all.contains(where: { $0.id == category }) else { return false }
         let key = "\(selectedVehicle)-\(category)"
         let current = upgrades[key, default: 0]
         guard current < 5 else { return false }
@@ -260,7 +283,7 @@ final class PlayerProgress {
     }
 
     func reset() {
-        cash = 450
+        cash = 700
         bestDistance = 0
         unlockedLevel = 0
         unlockedVehicles = [0]
@@ -298,8 +321,9 @@ final class PlayerProgress {
               payload.unlockedVehicles.count <= VehicleSpec.roster.count,
               payload.unlockedVehicles.contains(payload.selectedVehicle),
               Set(payload.unlockedVehicles).isSubset(of: Set(VehicleSpec.roster.map { $0.id })),
-              payload.upgrades.count <= VehicleSpec.roster.count * 4,
+              payload.upgrades.count <= VehicleSpec.roster.count * UpgradeSpec.all.count,
               payload.upgrades.values.allSatisfy({ (0...5).contains($0) }),
+              payload.upgrades.keys.allSatisfy({ key in UpgradeSpec.all.contains(where: { key.hasSuffix("-\($0.id)") }) }),
               payload.areaProgress.values.allSatisfy({ (0...1).contains($0) }),
               (payload.totalFuelPickups ?? 0) >= 0,
               (payload.totalCashPickups ?? 0) >= 0,
