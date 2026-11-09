@@ -54,4 +54,4 @@ All app artwork is original procedural/vector art in the repository. The game re
 
 ## QA status
 
-The latest build is still pending. A successful CI build verifies Swift compilation and IPA packaging, not real-device handling. The driving model, suspension/traction response, hit reactions, collisions, frame pacing and upgrade balance still require play-testing on the iPhone 17 Pro.
+The 30-leg campaign and garage overhaul compiled successfully with Xcode 27.1 / iOS 27.1 SDK and produced a verified unsigned ARM64 IPA in GitHub Actions (run 42543817762, commit 5ff483441ce4aa894578f8d51e9f8aeb196f667b). The downloaded archive and nested IPA passed ZIP integrity checks; the app bundle ID is `com.tiernan.deadmile` and its minimum OS is iOS 27.0. This verifies compilation and packaging only—not real-device driving feel, collisions, frame pacing, or economy balance. Hands-on testing on the iPhone 17 Pro is still required.
